@@ -12,3 +12,4 @@
 /coastline_polyline
 openstreetmap_coast_polyline.RData
 openstreetmap_coast_polygon.RData
+coast_line_distance_export.RData
