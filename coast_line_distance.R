@@ -3,19 +3,22 @@
 
 # 1. Load required data and packages ---------
 
+# packages to install if running on Amazon EC3 thing
+install.packages(c("sp","rgdal","rgeos"))
+
 
 # spatial data handling
 library("sp")
 library("rgdal")
-library("raster")
-library("gdistance")
+# library("raster")
+# library("gdistance")
 library("rgeos")
+library("RODBC")
 
 # Load in GPS point data (lat, long, device_info_serial, date_time)
 
 # Connect to DB
 # To link to database
-library(RODBC)
 
 # Establish a connection to the database
 gps.db <- odbcConnectAccess2007('D:/Dropbox/tracking_db/GPS_db.accdb')
@@ -82,6 +85,19 @@ xy.sp.points_SWEREF_99 <- spTransform(xy.sp.points, CRS("+proj=tmerc +lat_0=0 +l
 
 # Calculate distances
 n         <- length(xy.loc[,1])
+
+
+
+
+# break-point -------
+# save workspace - export to Amazon, and run slow calculations
+# on their server.
+save.image(file = "coast_line_distance_export.RData")
+
+# Resume from here ------
+load("coast_line_distance_export.RData")
+
+
 
 
 coast.dist <- NA
