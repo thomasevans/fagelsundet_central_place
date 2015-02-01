@@ -11,7 +11,7 @@ library("raster")
 
 
 # Coastline -----
-getwd()
+# getwd()
 # * Load coastline data (polyline) -----
 coast_line <- readOGR("coastline_polyline/coastlines-split-4326",
                       "lines")
