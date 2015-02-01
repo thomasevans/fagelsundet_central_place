@@ -1,16 +1,14 @@
 # History files
 .Rhistory
-
 # Example code in package build process
 *-Ex.R
-
 # R data files from past sessions
 .Rdata
-
 # RStudio files
 .Rproj.user/
 .Rproj.user
-
 # Coastline files
 /land_poly
 /coastline_polyline
+openstreetmap_coast_polyline.RData
+openstreetmap_coast_polygon.RData
