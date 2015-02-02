@@ -151,3 +151,24 @@ names(out.tab) <- c("device_info_serial",
 
 save(out.tab,
      file = "out.tab.RData")
+
+
+
+# 4. Output to DB ------
+gps.db <- odbcConnectAccess2007('D:/Dropbox/tracking_db/GPS_db.accdb')
+
+
+#export trip information to the database
+#will be neccessary to edit table in Access after to define data-types and primary keys and provide descriptions for each variable.
+sqlSave(gps.db, out.tab, tablename = "fagelsundet_gulls_all_2014_gps_coastdist",
+        append = FALSE,
+        rownames = FALSE, colnames = FALSE, verbose = FALSE,
+        safer = TRUE, addPK = FALSE,
+        fast = TRUE, test = FALSE, nastring = NULL,
+        varTypes = c(date_time = "Date")
+)
+
+close(gps.db)
+
+
+
