@@ -3,7 +3,7 @@
 
 # 1. Load required data and packages ---------
 
-# packages to install if running on Amazon EC3 thing
+# packages to install if running on Amazon EC2 thing
 install.packages(c("sp","rgdal","rgeos"))
 
 
@@ -102,7 +102,8 @@ load("coast_line_distance_export.RData")
 
 coast.dist <- NA
 # Eventuall ran the following on Amazon EC2 (cloud)
-# instance of RStudio, which completed in ca. 20 hours
+# instance of RStudio, which completed in ca. 30 hours
+# on m3.large instance
 system.time(
   for(i in 1:n){
     # Distance calculated in metres
@@ -137,7 +138,7 @@ sign.dist <- (1 - 2*on_land)*coast.dist
 
 out.tab <- cbind.data.frame(gps.points$device_info_serial,
                             gps.points$date_time,
-                            coast.dist
+                            coast.dist,
                             on_land,
                             sign.dist)
 
