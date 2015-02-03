@@ -147,12 +147,26 @@ names(out.tab) <- c("device_info_serial",
                     "date_time",
                     "coast_dist",
                     "on_land",
-                    "cost_dist_sign")
+                    "coast_dist_sign")
 
 
 save(out.tab,
      file = "out.tab.RData")
 
+
+# Resume (if ran above in cloud) ----
+
+load("out.tab.RData")
+
+str(out.tab)
+# hist(out.tab$coast_dist_sign, xlim = c(-5000,5000),
+#      breaks = 2000)
+
+
+# Fix date-time
+out.tab$date_time <-  as.POSIXct(strptime(out.tab$date_time,
+                                             format = "%Y-%m-%d %H:%M:%S",
+                                             tz = "UTC"))
 
 
 # 4. Output to DB ------
