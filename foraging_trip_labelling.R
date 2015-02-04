@@ -75,7 +75,8 @@ for(i in 2:n){
           trip_id_x <- trip_id_x + 1
     } 
     last_on_trip <- TRUE
-  } else {trip_id[i] <- 0}
+  } else {trip_id[i] <- 0
+          last_on_trip <- FALSE}
 }
 
 
@@ -87,6 +88,8 @@ for(i in 2:n){
 # 3. trip_id
 # 4. time_interval
 # 5. area_class
+
+range(trip_id)
 
 out.tab <- cbind.data.frame(gps.points$device_info_serial,
                             gps.points$date_time,
