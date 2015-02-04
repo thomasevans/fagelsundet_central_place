@@ -2,12 +2,6 @@
 
 
 # Packages -----
-# spatial data handling
-# library("sp")
-# library("rgdal")
-# # library("raster")
-# # library("gdistance")
-# library("rgeos")
 library("RODBC")
 
 
@@ -29,26 +23,102 @@ gps.db <- odbcConnectAccess2007('D:/Dropbox/tracking_db/GPS_db.accdb')
 # Get data
 gps.points <- sqlQuery(gps.db,
                        query =
-                      "SELECT DISTINCT g.device_info_serial, g.date_time, t.trip_1km
-                       FROM fagelsundet_gulls_all_2014_gps_points AS g, fagelsundet_gulls_all_2014_gps_coldist AS t
-                       WHERE g.device_info_serial = t.device_info_serial
-                       AND g.date_time = t.date_time
-                       ORDER BY g.device_info_serial ASC, g.date_time ASC;"
+                      "SELECT DISTINCT g.device_info_serial, g.date_time, t.trip_1km, c.coast_dist_sign
+FROM (fagelsundet_gulls_all_2014_gps_points AS g INNER JOIN fagelsundet_gulls_all_2014_gps_coldist AS t ON (g.date_time = t.date_time) AND (g.device_info_serial = t.device_info_serial)) INNER JOIN fagelsundet_gulls_all_2014_gps_coastdist AS c ON (g.date_time = c.date_time) AND (g.device_info_serial = c.device_info_serial)
+ORDER BY g.device_info_serial, g.date_time;"
                        ,as.is = TRUE)
 
 
+gps.points$date_time <-  as.POSIXct(strptime(gps.points$date_time,
+                                             format = "%Y-%m-%d %H:%M:%S",
+                                             tz = "UTC"))
+
+gps.points$trip_1km <- as.logical(gps.points$trip_1km)
+
+str(gps.points)
 
 
-# 2. Go through all points (for loop) -----
+# 2. Calculate time interval (for time-weighting) -----
+n <- length(gps.points$date_time)
+time_interval <- difftime(gps.points$date_time[-1],
+                          gps.points$date_time[-n],
+                          units = "secs")
+# Add value for first point
+time_interval <- c(0,time_interval)
+
+
+# Get area class
+cuts <- c(-Inf, -100, 100, 1000, Inf)
+labs <- c("Land", "Littoral", "Coastal", "Pelagic")
+area_class <- labs[findInterval(gps.points$coast_dist_sign, cuts)]
+area_class <- as.factor(area_class)
+
+# 3. Go through all points (for loop) -----
 # 1. Number points by foraging trip number (NA if not a trip)
 # 2. If same device, as on_trip, same as last point etc... (like labelling flights - test last point)
 
-# If trip, was last point trip? If yes and device_id the same, get same ID, otherwise get ID+1
+last_on_trip <- FALSE
+trip_id <- NULL
+trip_id[1] <- 0
+trip_id_x <- 0
+for(i in 2:n){
+  a <- FALSE
+  if(gps.points$device_info_serial[i] != 
+       gps.points$device_info_serial[i-1]){
+    a <- TRUE
+    time_interval[i] <- 0
+  }
+  
+  if(gps.points$trip_1km[i] == TRUE){
+    if((last_on_trip == TRUE) & (a == FALSE)) {trip_id[i] <- trip_id_x
+    } else {trip_id[i] <- trip_id_x + 1
+          trip_id_x <- trip_id_x + 1
+    } 
+    last_on_trip <- TRUE
+  } else {trip_id[i] <- 0}
+}
 
 
-# 3. Output new table   ------
+
+# 4. Output new table   ------
 # 
 # 1. device_info_serial
 # 2. date_time
 # 3. trip_id
+# 4. time_interval
+# 5. area_class
 
+out.tab <- cbind.data.frame(gps.points$device_info_serial,
+                            gps.points$date_time,
+                            trip_id,
+                            time_interval,
+                            area_class)
+
+
+names(out.tab) <- c("device_info_serial",
+                    "date_time",
+                    "trip_id",
+                    "time_interval",
+                    "area_class")
+
+
+# Fix date-time
+out.tab$date_time <-  as.POSIXct(strptime(out.tab$date_time,
+                                          format = "%Y-%m-%d %H:%M:%S",
+                                          tz = "UTC"))
+
+# 5. Output to DB ------
+gps.db <- odbcConnectAccess2007('D:/Dropbox/tracking_db/GPS_db.accdb')
+
+
+#export trip information to the database
+#will be neccessary to edit table in Access after to define data-types and primary keys and provide descriptions for each variable.
+sqlSave(gps.db, out.tab, tablename = "fagelsundet_gulls_all_2014_gps_trip_id_par",
+        append = FALSE,
+        rownames = FALSE, colnames = FALSE, verbose = FALSE,
+        safer = TRUE, addPK = FALSE,
+        fast = TRUE, test = FALSE, nastring = NULL,
+        varTypes = c(date_time = "Date")
+)
+
+close(gps.db)
