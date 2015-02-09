@@ -105,5 +105,65 @@ agg.bird.class$perc <- 100*agg.bird.class$time_interval/agg.bird$time_interval
 
 agg.bird.class
 
+x <- cbind.data.frame(points.trips$ring_number, points.trips$species)
 
+x2 <- unique(x)
+names(x2) <- c("ring_number", "species")
+x2 <- x2[order(x2$ring_number),]
+all.equal(x2$ring_number, agg.bird.class$ring_number[1:27])
+
+agg.bird.class$species <- x2$species
+
+
+
+# Plot by species - bird - activity -----
+
+# Using code from http://stackoverflow.com/questions/12664820/add-count-and-labels-to-stacked-bar-plot-with-facet-wrap#
+
+library(ggplot2)
+library(scales)
+library(RColorBrewer)
+
+x <- agg.bird.class[,c(1,2,4,5)]
+
+m <- melt(x)
+names(m)
+a <- ggplot(m, aes(x = ring_number, y = value, fill = area_class))
+  a + geom_bar(stat = "identity", position = "fill") +      
+  scale_fill_manual(values = (brewer.pal(4, "Greens"))) + 
+  facet_wrap(~species, ncol = 1) +
+  coord_flip() + 
+  scale_y_continuous(labels = percent) +
+  ylab('Percent')
+# ?facet_wrap
+# ?geom_bar
+
+
+a <- ggplot(m, aes(x = ring_number, y = value))
+a +   facet_grid(~species, scales = "free", space = "free" ) +
+  geom_bar(stat = "identity", aes(fill = area_class), position = "fill") +      
+  scale_fill_manual(values = (brewer.pal(4, "Greens"))) + 
+#   coord_flip() + 
+  scale_y_continuous(labels = percent) +
+  ylab('Percent') +
+  theme(axis.text.x = element_text(colour = 'black', angle = 90, size = 10, hjust = 0.5, vjust = 0.5))
+# ?facet_wrap
+
+
+
+
+a<-ggplot(foo,aes(x = factor(Treatment),y = Count))
+a+ facet_wrap(~Origin, scales="free_x") + 
+  geom_bar(stat="identity",aes(fill=factor(Type)),position="dodge") + 
+  theme_bw() + 
+  theme(axis.text.x=element_text(angle=60,hjust=1))
+
+
+
+# ?aes
+ggplot(example,aes(GroupungVar, fill = VarOfInterest)) +
+  geom_bar(position='fill') +      
+  scale_fill_manual(values = (brewer.pal(5, "Greens"))) + 
+  facet_wrap(~FacetVar,ncol=1) + coord_flip() + 
+  scale_y_continuous(labels = percent) + ylab('Percent')
 
