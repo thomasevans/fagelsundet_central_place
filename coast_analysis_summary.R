@@ -50,6 +50,9 @@ levels(gps.points$area_class)
 date.s <-  as.POSIXct(strptime("2014-05-15 00:00:00",
                                format = "%Y-%m-%d %H:%M:%S",
                                tz = "UTC"))
+date.m <- as.POSIXct(strptime("2014-06-15 00:00:00",
+                              format = "%Y-%m-%d %H:%M:%S",
+                              tz = "UTC"))
 date.e <-  as.POSIXct(strptime("2014-08-01 00:00:00",
                                format = "%Y-%m-%d %H:%M:%S",
                                tz = "UTC"))
@@ -59,7 +62,8 @@ date.e <-  as.POSIXct(strptime("2014-08-01 00:00:00",
 f <- ((gps.points$area_class != "Colony") &
       (gps.points$date_time > date.s) &
       (gps.points$date_time < date.e) &
-      (gps.points$time_interval < 1200))
+      (gps.points$time_interval < 1200) &
+        (gps.points$species != "Hydroprogne caspia"))
 # 
 # sort(gps.points$time_interval, decreasing = TRUE)[1:10]
 # summary(gps.points$time_interval > 1200)
@@ -120,50 +124,56 @@ agg.bird.class$species <- x2$species
 
 # Using code from http://stackoverflow.com/questions/12664820/add-count-and-labels-to-stacked-bar-plot-with-facet-wrap#
 
-library(ggplot2)
-library(scales)
-library(RColorBrewer)
+
 
 x <- agg.bird.class[,c(1,2,4,5)]
 
-m <- melt(x)
-names(m)
-a <- ggplot(m, aes(x = ring_number, y = value, fill = area_class))
-  a + geom_bar(stat = "identity", position = "fill") +      
-  scale_fill_manual(values = (brewer.pal(4, "Greens"))) + 
-  facet_wrap(~species, ncol = 1) +
-  coord_flip() + 
-  scale_y_continuous(labels = percent) +
-  ylab('Percent')
-# ?facet_wrap
-# ?geom_bar
 
 
-a <- ggplot(m, aes(x = ring_number, y = value))
-a +   facet_grid(~species, scales = "free", space = "free" ) +
-  geom_bar(stat = "identity", aes(fill = area_class), position = "fill") +      
-  scale_fill_manual(values = (brewer.pal(4, "Greens"))) + 
-#   coord_flip() + 
-  scale_y_continuous(labels = percent) +
-  ylab('Percent') +
-  theme(axis.text.x = element_text(colour = 'black', angle = 90, size = 10, hjust = 0.5, vjust = 0.5))
-# ?facet_wrap
+plot.fun <- function(x){
+  library(ggplot2)
+  library(scales)
+  library(RColorBrewer)
+  
+  m <- melt(x)
+  # names(m) <- c("Bird ID", "Area class", "Species", "variable", "")
+  names(m)
+  
+  ar_lev <- levels(m$area_class)
+  ar_lev <- ar_lev[c(2,3,4,1,5)]
+  m$area_class <- factor(m$area_class, levels = ar_lev)
+  
+  
+  levels(m$species)
+  levels(m$species) <- c("H. caspia","L. argentatus",
+                         "L. canus", "L. fuscus",
+                         "L. marinus")
+  
+  
+  
+  a <- ggplot(m, aes(x = ring_number, y = value))
+  # pdf("time_activity_habitat.pdf")
+  a +   facet_grid(~species, scales = "free", space = "free" ) +
+    geom_bar(stat = "identity", aes(fill = area_class, order = area_class), position = "fill") +      
+    scale_fill_manual(values = (brewer.pal(4, "Spectral")),
+                      name = "Area type") + 
+  #   coord_flip() + 
+    scale_y_continuous("Percent", labels = percent) +
+    ylab('Percent') +
+    theme(axis.text.x = element_text(angle = 90, size = 10, hjust = 0.5, vjust = 0.5),
+          axis.text = element_text(colour = 'black', size = 10),
+          axis.title = element_text(face = "bold",
+                                    colour = 'black', size = 14),
+          strip.text.x = element_text(size = 10, face = "italic"),
+          legend.text = element_text(size = 10),
+          legend.title = element_text(size = 10, face = "bold")) +
+    xlab("Bird ID") +
+    ggtitle("Proportion of time spent \n by area type")
+  # plot.all
+  # dev.off()
+}
 
+plot.fun(x)
 
-
-
-a<-ggplot(foo,aes(x = factor(Treatment),y = Count))
-a+ facet_wrap(~Origin, scales="free_x") + 
-  geom_bar(stat="identity",aes(fill=factor(Type)),position="dodge") + 
-  theme_bw() + 
-  theme(axis.text.x=element_text(angle=60,hjust=1))
-
-
-
-# ?aes
-ggplot(example,aes(GroupungVar, fill = VarOfInterest)) +
-  geom_bar(position='fill') +      
-  scale_fill_manual(values = (brewer.pal(5, "Greens"))) + 
-  facet_wrap(~FacetVar,ncol=1) + coord_flip() + 
-  scale_y_continuous(labels = percent) + ylab('Percent')
-
+# By Season -----
+# Now need to do somthing for when there are zeros (i.e. no observations of a certain class for one individual for that season - somehow need to add zeros, such that all cross-wise groupings are included)
