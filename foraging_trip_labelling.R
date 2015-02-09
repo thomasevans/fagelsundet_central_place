@@ -81,7 +81,13 @@ for(i in 2:n){
 
 
 
-# 4. Output new table   ------
+# 4. Replace colony based locations with label 'colony' ----
+area_class2 <- area_class
+levels(area_class2) <- c(levels(area_class2), "Colony")
+area_class2[gps.points$trip_1km == FALSE] <- "Colony"
+summary(area_class2)
+
+# 5. Output new table   ------
 # 
 # 1. device_info_serial
 # 2. date_time
@@ -89,13 +95,13 @@ for(i in 2:n){
 # 4. time_interval
 # 5. area_class
 
-range(trip_id)
+# range(trip_id)
 
 out.tab <- cbind.data.frame(gps.points$device_info_serial,
                             gps.points$date_time,
                             trip_id,
                             time_interval,
-                            area_class)
+                            area_class2)
 
 
 names(out.tab) <- c("device_info_serial",
@@ -106,9 +112,11 @@ names(out.tab) <- c("device_info_serial",
 
 
 # Fix date-time
-out.tab$date_time <-  as.POSIXct(strptime(out.tab$date_time,
-                                          format = "%Y-%m-%d %H:%M:%S",
-                                          tz = "UTC"))
+# out.tab$date_time <-  as.POSIXct(strptime(out.tab$date_time,
+#                                           format = "%Y-%m-%d %H:%M:%S",
+#                                           tz = "UTC"))
+
+str(out.tab)
 
 # 5. Output to DB ------
 gps.db <- odbcConnectAccess2007('D:/Dropbox/tracking_db/GPS_db.accdb')
