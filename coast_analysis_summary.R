@@ -2,7 +2,7 @@
 
 # Packages -----
 library("RODBC")
-
+library("reshape2")
 
 
 # 1. Get data from DB -----
@@ -43,7 +43,67 @@ gps.points$species <- as.factor(gps.points$species)
 
 gps.points$area_class <- as.factor(gps.points$area_class)
 
+# 2. filter out colony points + outliers ------
+levels(gps.points$area_class)
+
+
+date.s <-  as.POSIXct(strptime("2014-05-15 00:00:00",
+                               format = "%Y-%m-%d %H:%M:%S",
+                               tz = "UTC"))
+date.e <-  as.POSIXct(strptime("2014-08-01 00:00:00",
+                               format = "%Y-%m-%d %H:%M:%S",
+                               tz = "UTC"))
+
+# Include certain date period only, and exclude points where
+# time interval is greater than 20 minutes
+f <- ((gps.points$area_class != "Colony") &
+      (gps.points$date_time > date.s) &
+      (gps.points$date_time < date.e) &
+      (gps.points$time_interval < 1200))
+# 
+# sort(gps.points$time_interval, decreasing = TRUE)[1:10]
+# summary(gps.points$time_interval > 1200)
+summary(f)
+# ?sort
+
+points.trips <- gps.points[f,]
+
+
+# 3. Summarise by species (time_interval ~ species + area_class) ----
+
+
+agg.sp.class <- aggregate(time_interval ~ species + area_class,
+                          data = points.trips,
+                          FUN = sum, na.rm = TRUE)
+
+
+agg.sp <- aggregate(time_interval ~ species,
+                          data = points.trips,
+                          FUN = sum, na.rm = TRUE)
+
+str(agg.sp.class)
+
+agg.sp.class$perc <- 100*agg.sp.class$time_interval/agg.sp$time_interval
+
+agg.sp.class
+
+
+# 3. Summarise by ring_number (time_interval ~ ring_number + area_class) ----
+
+agg.bird.class <- aggregate(time_interval ~ ring_number + area_class,
+                          data = points.trips,
+                          FUN = sum, na.rm = TRUE)
+
+
+agg.bird <- aggregate(time_interval ~ ring_number,
+                    data = points.trips,
+                    FUN = sum, na.rm = TRUE)
+
+str(agg.bird.class)
+
+agg.bird.class$perc <- 100*agg.bird.class$time_interval/agg.bird$time_interval
+
+agg.bird.class
 
 
 
-# 2.
