@@ -130,7 +130,7 @@ x <- agg.bird.class[,c(1,2,4,5)]
 
 
 
-plot.fun <- function(x){
+plot.fun <- function(x, title.text = "Proportion of time spent \n by area type"){
   library(ggplot2)
   library(scales)
   library(RColorBrewer)
@@ -168,12 +168,13 @@ plot.fun <- function(x){
           legend.text = element_text(size = 10),
           legend.title = element_text(size = 10, face = "bold")) +
     xlab("Bird ID") +
-    ggtitle("Proportion of time spent \n by area type")
+    ggtitle(title.text)
   # plot.all
   # dev.off()
 }
 
-plot.fun(x)
-
+png("time_area_june1.png")
+plot.fun(x, title.text = "Proportion of time spent by area type \n June #1")
+dev.off()
 # By Season -----
 # Now need to do somthing for when there are zeros (i.e. no observations of a certain class for one individual for that season - somehow need to add zeros, such that all cross-wise groupings are included)
