@@ -13,11 +13,11 @@
 openstreetmap_coast_polyline.RData
 openstreetmap_coast_polygon.RData
 coast_line_distance_export.RData
-
 # PDF files
 *.pdf
-
 out.tab.RData
 foraging_trip_labelling_forAmazon.RData
 data_for_export.RData
 time_acitivty_habitat_early.pdf
+coast_analysis_summary.R
+*.png
