@@ -47,10 +47,10 @@ gps.points$area_class <- as.factor(gps.points$area_class)
 levels(gps.points$area_class)
 
 # Set start and end dates for data to include
-date.s <-  as.POSIXct(strptime("2014-05-15 00:00:00",
+date.s <-  as.POSIXct(strptime("2014-05-01 00:00:00",
                                format = "%Y-%m-%d %H:%M:%S",
                                tz = "UTC"))
-date.e <-  as.POSIXct(strptime("2014-07-15 00:00:00",
+date.e <-  as.POSIXct(strptime("2014-08-01 00:00:00",
                                format = "%Y-%m-%d %H:%M:%S",
                                tz = "UTC"))
 
@@ -74,90 +74,125 @@ points.trips <- gps.points[f,]
 
 
 # 3. Lable time periods -----
+# Find time intervals
+time.per <- findInterval(points.trips$date_time,
+                         c(as.POSIXct("2014-05-15 00:00", tz = "UTC"),
+                           as.POSIXct("2014-06-01 00:00", tz = "UTC"),
+                           as.POSIXct("2014-06-15 00:00", tz = "UTC"),
+                           as.POSIXct("2014-07-01 00:00", tz = "UTC"),
+                           as.POSIXct("2014-07-15 00:00", tz = "UTC")))
 
-fun.period <- function(x){
-  if(x < as.POSIXct("2014-05-15 00:00", tz = "UTC")) z <- NA else{
-    if(x < as.POSIXct("2014-06-01 00:00", tz = "UTC")) z <- "may2" else{
-      if(x < as.POSIXct("2014-06-15 00:00", tz = "UTC")) z <- "jun1" else{
-        if(x < as.POSIXct("2014-07-01 00:00", tz = "UTC")) z <- "jun2" else{
-          if(x < as.POSIXct("2014-07-15 00:00", tz = "UTC")) z <- "jul1" else{
-            z <- NA
-          }
-        }
-      }
-    }
-  }
-}
+# summary(as.factor(time.per))
 
-# str(gps.points$date_time[1])
+# Label time intervals
+time.per[time.per == 0] <- NA
+time.per[time.per == 1] <- "may2"
+time.per[time.per == 2] <- "jun1"
+time.per[time.per == 3] <- "jun2"
+time.per[time.per == 4] <- "jul1"
+time.per[time.per == 5] <- NA
+time.per <- as.factor(time.per)
 
-test <- lapply(gps.points$date_time, FUN = fun.period)
+# View summary
+summary(time.per)
 
-# ?findInterval
+# Check this looks correct
+# test <- cbind.data.frame(time.per[c(1:10,10000:10010,30000:30010)],gps.points$date_time[c(1:10,10000:10010,30000:30010)] )
 
-test.new <- findInterval(sample(gps.points$date_time,100), c(as.POSIXct("2014-05-15 00:00", tz = "UTC"),
-                                 as.POSIXct("2014-06-15 00:00", tz = "UTC")))
+points.trips <- cbind.data.frame(points.trips, time.per)
 
+str(points.trips)
 
+summary(points.trips$ring_number)
 
+# Only retain levels that have some data (drops CT terns for example)
+points.trips <- droplevels(points.trips)
 
-# ?vapply
-warnings()
-# 3. Summarise by species (time_interval ~ species + area_class) ----
-
-
-agg.sp.class <- aggregate(time_interval ~ species + area_class,
-                          data = points.trips,
-                          FUN = sum, na.rm = TRUE)
-
-
-
+# 4. Make summaries (%) by habitat, species, period etc.  -------
+# Use 'plyr' package
 library(plyr)
-df2 <- ddply(points.trips, c("species", "area_class", "ring_number"), function(x) colSums(x[c("time_interval")]), .drop = FALSE)
-df2
+
+df_ind_per <- ddply(points.trips, c("area_class", "time.per",
+                             "ring_number"),
+             function(x) colSums(x[c("time_interval")]),
+             .drop = FALSE)
+df_ind_per <- df_ind_per[ do.call(order, df_ind_per), ]
 
 
-df3 <- ddply(df2, c("species", "area_class"), function(x) colSums(x[c("time_interval")]), .drop = FALSE)
-df3
-?ddply
+df_per <- ddply(points.trips, c("time.per", "ring_number"
+                             ), function(x) colSums(x[c("time_interval")]),
+             .drop = FALSE)
+df_per <- df_per[ do.call(order, df_per), ]
+
+# Test that data is in same order (same bird IDs)
+all.equal(df_ind_per[1:100,3],df_per[,2])
+
+# Calculate %
+df_ind_per$percent <- 100 * df_ind_per$time_interval / df_per$time_interval
 
 
-agg.sp <- aggregate(time_interval ~ species,
-                          data = points.trips,
-                          FUN = sum, na.rm = TRUE)
+# When no data for period, replace percentage values with zero
+df_ind_per$percent[df_per$time_interval == 0] <- 0
 
-str(agg.sp.class)
-
-agg.sp.class$perc <- 100*agg.sp.class$time_interval/agg.sp$time_interval
-
-agg.sp.class
+# Remove rows of NA categories
+df_ind_per <- df_ind_per[!is.na(df_ind_per[,2]),]
 
 
-# 3. Summarise by ring_number (time_interval ~ ring_number + area_class) ----
-
-agg.bird.class <- aggregate(time_interval ~ ring_number + area_class,
-                          data = points.trips,
-                          FUN = length)
-?aggregate
-
-agg.bird <- aggregate(time_interval ~ ring_number,
-                    data = points.trips,
-                    FUN = sum, na.rm = TRUE)
-
-str(agg.bird.class)
-
-agg.bird.class$perc <- 100*agg.bird.class$time_interval/agg.bird$time_interval
-
-agg.bird.class
-
-x <- cbind.data.frame(points.trips$ring_number, points.trips$species)
-
-x2 <- unique(x)
-names(x2) <- c("ring_number", "species")
-x2 <- x2[order(x2$ring_number),]
-all.equal(x2$ring_number, agg.bird.class$ring_number[1:27])
-
-agg.bird.class$species <- x2$species
+# # 3. Summarise by species (time_interval ~ species + area_class) ----
+# 
+# 
+# agg.sp.class <- aggregate(time_interval ~ species + area_class,
+#                           data = points.trips,
+#                           FUN = sum, na.rm = TRUE)
+# 
+# 
+# 
+# library(plyr)
+# df2 <- ddply(points.trips, c("species", "area_class", "ring_number"), function(x) colSums(x[c("time_interval")]), .drop = FALSE)
+# df2
+# 
+# 
+# df3 <- ddply(df2, c("species", "area_class"), function(x) colSums(x[c("time_interval")]), .drop = FALSE)
+# df3
+# # ?ddply
+# 
+# 
+# agg.sp <- aggregate(time_interval ~ species,
+#                           data = points.trips,
+#                           FUN = sum, na.rm = TRUE)
+# 
+# str(agg.sp.class)
+# 
+# agg.sp.class$perc <- 100*agg.sp.class$time_interval/agg.sp$time_interval
+# 
+# agg.sp.class
+# 
+# 
+# # 3. Summarise by ring_number (time_interval ~ ring_number + area_class) ----
+# 
+# agg.bird.class <- aggregate(time_interval ~ ring_number + area_class,
+#                           data = points.trips,
+#                           FUN = length)
+# ?aggregate
+# 
+# agg.bird <- aggregate(time_interval ~ ring_number,
+#                     data = points.trips,
+#                     FUN = sum, na.rm = TRUE)
+# 
+# str(agg.bird.class)
+# 
+# agg.bird.class$perc <- 100*agg.bird.class$time_interval/agg.bird$time_interval
+# 
+# agg.bird.class
+# 
+# x <- cbind.data.frame(points.trips$ring_number, points.trips$species)
+# 
+# x2 <- unique(x)
+# names(x2) <- c("ring_number", "species")
+# x2 <- x2[order(x2$ring_number),]
+# all.equal(x2$ring_number, agg.bird.class$ring_number[1:27])
+# 
+# agg.bird.class$species <- x2$species
 
 
 
@@ -165,10 +200,12 @@ agg.bird.class$species <- x2$species
 
 # Using code from http://stackoverflow.com/questions/12664820/add-count-and-labels-to-stacked-bar-plot-with-facet-wrap#
 
+str(df_ind_per)
 
+x <- df_ind_per[(df_ind_per$time.per == "jul1"),c(4,3,1,6)]
+x <- droplevels(x)
 
-x <- agg.bird.class[,c(1,2,4,5)]
-
+x[x[,2] == "8120611",]
 
 
 plot.fun <- function(x, title.text = "Proportion of time spent \n by area type"){
@@ -181,12 +218,12 @@ plot.fun <- function(x, title.text = "Proportion of time spent \n by area type")
   names(m)
   
   ar_lev <- levels(m$area_class)
-  ar_lev <- ar_lev[c(2,3,4,1,5)]
+  ar_lev <- ar_lev[c(2,3,1,4)]
   m$area_class <- factor(m$area_class, levels = ar_lev)
   
   
   levels(m$species)
-  levels(m$species) <- c("H. caspia","L. argentatus",
+  levels(m$species) <- c("L. argentatus",
                          "L. canus", "L. fuscus",
                          "L. marinus")
   
