@@ -268,3 +268,61 @@ png("time_area_jul1.png")
 plot.time.per.fun(x.df = com.df, per = "jul1")
 dev.off()
 
+
+
+hist(points.trips$coast_dist_sign/1000, breaks = 200)
+
+hist(points.trips$coast_dist_sign/1000, breaks = 100,
+     xlim = c(-50,50))
+
+
+hist(points.trips$coast_dist_sign/1000, breaks = 20000,
+     xlim = c(-5,5))
+
+
+hist(points.trips$coast_dist_sign/1000, breaks = 20000,
+     xlim = c(-1,2))
+
+
+hg <- points.trips$species == "Larus argentatus"
+gbbg <- points.trips$species == "Larus marinus"
+cg <- points.trips$species == "Larus canus"
+lbbg <- points.trips$species == "Larus fuscus"
+
+
+par(mfrow=c(4,1))
+hist(points.trips$coast_dist_sign[hg]/1000, breaks = 20000,
+     xlim = c(-1,2))
+hist(points.trips$coast_dist_sign[gbbg]/1000, breaks = 2000,
+     xlim = c(-1,2))
+hist(points.trips$coast_dist_sign[cg]/1000, breaks = 2000,
+     xlim = c(-1,2))
+hist(points.trips$coast_dist_sign[lbbg]/1000, breaks = 10000,
+     xlim = c(-1,2))
+
+
+
+
+par(mfrow=c(4,1))
+hist(points.trips$coast_dist_sign[hg]/1000, breaks = 20000,
+     xlim = c(-20,50))
+hist(points.trips$coast_dist_sign[gbbg]/1000, breaks = 2000,
+     xlim = c(-20,50))
+hist(points.trips$coast_dist_sign[cg]/1000, breaks = 2000,
+     xlim = c(-20,50))
+hist(points.trips$coast_dist_sign[lbbg]/1000, breaks = 10000,
+     xlim = c(-20,50))
+
+
+
+x.lims <- c(-50,50)
+par(mfrow=c(4,1))
+hist(points.trips$coast_dist_sign[hg]/1000, breaks = 20000,
+     xlim = x.lims, probability = TRUE)
+# ?hist
+hist(points.trips$coast_dist_sign[gbbg]/1000, breaks = 2000,
+     xlim = x.lims, probability = TRUE)
+hist(points.trips$coast_dist_sign[cg]/1000, breaks = 2000,
+     xlim = x.lims, probability = TRUE)
+hist(points.trips$coast_dist_sign[lbbg]/1000, breaks = 10000,
+     xlim = x.lims, probability = TRUE)
