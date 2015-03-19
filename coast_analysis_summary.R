@@ -46,16 +46,18 @@ gps.points$area_class <- as.factor(gps.points$area_class)
 # 2. filter out colony points + outliers ------
 levels(gps.points$area_class)
 
-
+# Set start and end dates for data to include
 date.s <-  as.POSIXct(strptime("2014-05-15 00:00:00",
                                format = "%Y-%m-%d %H:%M:%S",
                                tz = "UTC"))
-date.m <- as.POSIXct(strptime("2014-06-15 00:00:00",
-                              format = "%Y-%m-%d %H:%M:%S",
-                              tz = "UTC"))
-date.e <-  as.POSIXct(strptime("2014-08-01 00:00:00",
+date.e <-  as.POSIXct(strptime("2014-07-15 00:00:00",
                                format = "%Y-%m-%d %H:%M:%S",
                                tz = "UTC"))
+
+# date.e <-  as.POSIXct(strptime("2014-06-01 00:00:00",
+#                                format = "%Y-%m-%d %H:%M:%S",
+#                                tz = "UTC"))
+
 
 # Include certain date period only, and exclude points where
 # time interval is greater than 20 minutes
@@ -64,21 +66,60 @@ f <- ((gps.points$area_class != "Colony") &
       (gps.points$date_time < date.e) &
       (gps.points$time_interval < 1200) &
         (gps.points$species != "Hydroprogne caspia"))
-# 
-# sort(gps.points$time_interval, decreasing = TRUE)[1:10]
-# summary(gps.points$time_interval > 1200)
+
 summary(f)
-# ?sort
 
 points.trips <- gps.points[f,]
 
 
+
+# 3. Lable time periods -----
+
+fun.period <- function(x){
+  if(x < as.POSIXct("2014-05-15 00:00", tz = "UTC")) z <- NA else{
+    if(x < as.POSIXct("2014-06-01 00:00", tz = "UTC")) z <- "may2" else{
+      if(x < as.POSIXct("2014-06-15 00:00", tz = "UTC")) z <- "jun1" else{
+        if(x < as.POSIXct("2014-07-01 00:00", tz = "UTC")) z <- "jun2" else{
+          if(x < as.POSIXct("2014-07-15 00:00", tz = "UTC")) z <- "jul1" else{
+            z <- NA
+          }
+        }
+      }
+    }
+  }
+}
+
+# str(gps.points$date_time[1])
+
+test <- lapply(gps.points$date_time, FUN = fun.period)
+
+# ?findInterval
+
+test.new <- findInterval(sample(gps.points$date_time,100), c(as.POSIXct("2014-05-15 00:00", tz = "UTC"),
+                                 as.POSIXct("2014-06-15 00:00", tz = "UTC")))
+
+
+
+
+# ?vapply
+warnings()
 # 3. Summarise by species (time_interval ~ species + area_class) ----
 
 
 agg.sp.class <- aggregate(time_interval ~ species + area_class,
                           data = points.trips,
                           FUN = sum, na.rm = TRUE)
+
+
+
+library(plyr)
+df2 <- ddply(points.trips, c("species", "area_class", "ring_number"), function(x) colSums(x[c("time_interval")]), .drop = FALSE)
+df2
+
+
+df3 <- ddply(df2, c("species", "area_class"), function(x) colSums(x[c("time_interval")]), .drop = FALSE)
+df3
+?ddply
 
 
 agg.sp <- aggregate(time_interval ~ species,
@@ -96,8 +137,8 @@ agg.sp.class
 
 agg.bird.class <- aggregate(time_interval ~ ring_number + area_class,
                           data = points.trips,
-                          FUN = sum, na.rm = TRUE)
-
+                          FUN = length)
+?aggregate
 
 agg.bird <- aggregate(time_interval ~ ring_number,
                     data = points.trips,
