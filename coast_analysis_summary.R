@@ -196,19 +196,23 @@ df_ind_per <- df_ind_per[!is.na(df_ind_per[,2]),]
 
 
 
-# Plot by species - bird - activity -----
+# ring + species key table -----
 
+# Add species key
+sp.ring.key <- gps.points[,c("ring_number","species")]
+sp.ring.key <- unique(sp.ring.key)
+# Remove CT terns
+sp.ring.key <- sp.ring.key[sp.ring.key$species != "Hydroprogne caspia",]
+sp.ring.key <- droplevels(sp.ring.key)
+
+
+
+
+
+# Define plotting function ------
 # Using code from http://stackoverflow.com/questions/12664820/add-count-and-labels-to-stacked-bar-plot-with-facet-wrap#
-
-str(df_ind_per)
-
-x <- df_ind_per[(df_ind_per$time.per == "jul1"),c(4,3,1,6)]
-x <- droplevels(x)
-
-x[x[,2] == "8120611",]
-
-
-plot.fun <- function(x, title.text = "Proportion of time spent \n by area type"){
+plot.fun <- function(x, title.text = "Proportion of time spent \n by area type",
+                     no_legend = FALSE){
   library(ggplot2)
   library(scales)
   library(RColorBrewer)
@@ -230,6 +234,10 @@ plot.fun <- function(x, title.text = "Proportion of time spent \n by area type")
   
   
   a <- ggplot(m, aes(x = ring_number, y = value))
+  
+  if(no_legend == TRUE) {a <- a + theme(legend.position="none")}
+  
+  
   # pdf("time_activity_habitat.pdf")
   a +   facet_grid(~species, scales = "free", space = "free" ) +
     geom_bar(stat = "identity", aes(fill = area_class, order = area_class), position = "fill") +      
@@ -251,8 +259,37 @@ plot.fun <- function(x, title.text = "Proportion of time spent \n by area type")
   # dev.off()
 }
 
-png("time_area_june1.png")
-plot.fun(x, title.text = "Proportion of time spent by area type \n June #1")
+
+
+# Plot figures for each time period -----
+
+# Function wrap
+plot.time.per.fun <- function(x.df, per = "may2", sp.ring.key2 = sp.ring.key,
+                              no_legend = TRUE){
+  # Choose time period, and drop now unused levels
+  x <- x.df[(x.df$time.per == per),c(3,1,5)]
+  x <- droplevels(x)
+  
+  # Add species category
+  x <- join(x, sp.ring.key2)
+  
+  # Plot
+  plot.fun(x, title.text = "", no_legend = no_legend)
+}
+
+png("time_area_may2.png")
+plot.time.per.fun(x.df = df_ind_per, per = "may2")
 dev.off()
-# By Season -----
-# Now need to do somthing for when there are zeros (i.e. no observations of a certain class for one individual for that season - somehow need to add zeros, such that all cross-wise groupings are included)
+
+png("time_area_jun1.png")
+plot.time.per.fun(x.df = df_ind_per, per = "jun1")
+dev.off()
+
+png("time_area_jun2.png")
+plot.time.per.fun(x.df = df_ind_per, per = "jun2")
+dev.off()
+
+png("time_area_jul1.png")
+plot.time.per.fun(x.df = df_ind_per, per = "jul1")
+dev.off()
+
