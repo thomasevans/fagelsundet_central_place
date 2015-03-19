@@ -54,9 +54,6 @@ date.e <-  as.POSIXct(strptime("2014-08-01 00:00:00",
                                format = "%Y-%m-%d %H:%M:%S",
                                tz = "UTC"))
 
-# date.e <-  as.POSIXct(strptime("2014-06-01 00:00:00",
-#                                format = "%Y-%m-%d %H:%M:%S",
-#                                tz = "UTC"))
 
 
 # Include certain date period only, and exclude points where
@@ -138,62 +135,6 @@ df_ind_per$percent[df_per$time_interval == 0] <- 0
 df_ind_per <- df_ind_per[!is.na(df_ind_per[,2]),]
 
 
-# # 3. Summarise by species (time_interval ~ species + area_class) ----
-# 
-# 
-# agg.sp.class <- aggregate(time_interval ~ species + area_class,
-#                           data = points.trips,
-#                           FUN = sum, na.rm = TRUE)
-# 
-# 
-# 
-# library(plyr)
-# df2 <- ddply(points.trips, c("species", "area_class", "ring_number"), function(x) colSums(x[c("time_interval")]), .drop = FALSE)
-# df2
-# 
-# 
-# df3 <- ddply(df2, c("species", "area_class"), function(x) colSums(x[c("time_interval")]), .drop = FALSE)
-# df3
-# # ?ddply
-# 
-# 
-# agg.sp <- aggregate(time_interval ~ species,
-#                           data = points.trips,
-#                           FUN = sum, na.rm = TRUE)
-# 
-# str(agg.sp.class)
-# 
-# agg.sp.class$perc <- 100*agg.sp.class$time_interval/agg.sp$time_interval
-# 
-# agg.sp.class
-# 
-# 
-# # 3. Summarise by ring_number (time_interval ~ ring_number + area_class) ----
-# 
-# agg.bird.class <- aggregate(time_interval ~ ring_number + area_class,
-#                           data = points.trips,
-#                           FUN = length)
-# ?aggregate
-# 
-# agg.bird <- aggregate(time_interval ~ ring_number,
-#                     data = points.trips,
-#                     FUN = sum, na.rm = TRUE)
-# 
-# str(agg.bird.class)
-# 
-# agg.bird.class$perc <- 100*agg.bird.class$time_interval/agg.bird$time_interval
-# 
-# agg.bird.class
-# 
-# x <- cbind.data.frame(points.trips$ring_number, points.trips$species)
-# 
-# x2 <- unique(x)
-# names(x2) <- c("ring_number", "species")
-# x2 <- x2[order(x2$ring_number),]
-# all.equal(x2$ring_number, agg.bird.class$ring_number[1:27])
-# 
-# agg.bird.class$species <- x2$species
-
 
 
 # ring + species key table -----
@@ -206,8 +147,44 @@ sp.ring.key <- sp.ring.key[sp.ring.key$species != "Hydroprogne caspia",]
 sp.ring.key <- droplevels(sp.ring.key)
 
 
+# Add species category
+df_ind_per <- join(df_ind_per, sp.ring.key)
 
 
+# Calculate mean by activity period for each species  -----
+df.sp <- ddply(points.trips, c("area_class", "time.per", "species"
+), function(x) colSums(x[c("time_interval")], na.rm = FALSE),
+.drop = FALSE)
+
+df.sp.time  <- ddply(points.trips, c("time.per", "species"
+), function(x) colSums(x[c("time_interval")], na.rm = FALSE),
+.drop = FALSE)
+
+
+# Calculate %
+df.sp$percent <- 100 * df.sp$time_interval / df.sp.time$time_interval
+
+
+# When no data for period, replace percentage values with zero
+df.sp$percent[df.sp$time_interval == 0] <- 0
+
+# Remove rows of NA categories
+df.sp <- df.sp[!is.na(df.sp[,2]),]
+
+
+df.sp$ring_number <- "mean"
+
+
+names(df.sp)
+names(df_ind_per)
+
+df.sp <- df.sp[,c(1,2,6,4,5,3)]
+
+com.df <- rbind.data.frame(df_ind_per, df.sp)
+#   ?rbind
+levels(com.df$ring_number)
+
+str(com.df)
 
 # Define plotting function ------
 # Using code from http://stackoverflow.com/questions/12664820/add-count-and-labels-to-stacked-bar-plot-with-facet-wrap#
@@ -264,32 +241,30 @@ plot.fun <- function(x, title.text = "Proportion of time spent \n by area type",
 # Plot figures for each time period -----
 
 # Function wrap
-plot.time.per.fun <- function(x.df, per = "may2", sp.ring.key2 = sp.ring.key,
+plot.time.per.fun <- function(x.df, per = "may2",
                               no_legend = TRUE){
   # Choose time period, and drop now unused levels
-  x <- x.df[(x.df$time.per == per),c(3,1,5)]
+  x <- x.df[(x.df$time.per == per),c(3,1,5,6)]
   x <- droplevels(x)
-  
-  # Add species category
-  x <- join(x, sp.ring.key2)
-  
+#   levels(x$species)
+
   # Plot
   plot.fun(x, title.text = "", no_legend = no_legend)
 }
 
 png("time_area_may2.png")
-plot.time.per.fun(x.df = df_ind_per, per = "may2")
+plot.time.per.fun(x.df = com.df, per = "may2")
 dev.off()
 
 png("time_area_jun1.png")
-plot.time.per.fun(x.df = df_ind_per, per = "jun1")
+plot.time.per.fun(x.df = com.df, per = "jun1")
 dev.off()
 
 png("time_area_jun2.png")
-plot.time.per.fun(x.df = df_ind_per, per = "jun2")
+plot.time.per.fun(x.df = com.df, per = "jun2")
 dev.off()
 
 png("time_area_jul1.png")
-plot.time.per.fun(x.df = df_ind_per, per = "jul1")
+plot.time.per.fun(x.df = com.df, per = "jul1")
 dev.off()
 
