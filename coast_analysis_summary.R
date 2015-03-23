@@ -344,6 +344,7 @@ foo <- data.frame(v, w, s)
 # Basic plot
 a <- ggplot(foo, aes(v, weight = w)) 
 
+pdf("foraging_distance_hist.pdf")
 # Plot figure
 a + aes(y = ..density..) +
   # bidwidth = 0.5 is 0.5 km intervals
@@ -360,6 +361,10 @@ a + aes(y = ..density..) +
         strip.text.x = element_text(size = 10, face = "italic"),
         legend.text = element_text(size = 10),
         legend.title = element_text(size = 10, face = "bold"))
+dev.off()
+# getwd()
+
+
 
 
 # Time spent in areas - activity budget - overall species -----
