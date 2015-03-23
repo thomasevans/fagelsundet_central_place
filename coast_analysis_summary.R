@@ -354,6 +354,7 @@ a + aes(y = ..density..) +
   facet_grid(s~. , scales = "free") +
   ylab('Proportion of foraging time spent in 0.5 km bins') +
   xlab('Distance from coastline (km)') +
+  # Set some aesthetic paramaters
   theme(axis.text.x = element_text(angle = 0, size = 10, hjust = 0.5, vjust = 0.5),
         axis.text = element_text(colour = 'black', size = 10),
         axis.title = element_text(face = "bold",
@@ -369,3 +370,35 @@ dev.off()
 
 # Time spent in areas - activity budget - overall species -----
 
+# Use 'plyr' package
+library(plyr)
+
+df_ind_area <- ddply(points.trips, c("area_class",
+                                    "ring_number"),
+                    function(x) colSums(x[c("time_interval")]),
+                    .drop = FALSE)
+df_ind_area <- df_ind_area[ do.call(order, df_ind_area), ]
+
+
+df_ind <- ddply(points.trips, c("ring_number"
+), function(x) colSums(x[c("time_interval")]),
+.drop = FALSE)
+df_ind <- df_ind[ do.call(order, df_ind), ]
+
+# Test that data is in same order (same bird IDs)
+all.equal(df_ind_area[1:100,3], df_ind[,2])
+
+# Calculate %
+df_ind_area$percent <- 100 * df_ind_area$time_interval / df_ind$time_interval
+
+
+# When no data for period, replace percentage values with zero
+df_ind_area$percent[df_ind$time_interval == 0] <- 0
+
+# Remove rows of NA categories
+df_ind_area <- df_ind_area[!is.na(df_ind_area[,2]),]
+
+
+# Then add species
+# Add species category
+df_ind_area <- join(df_ind_area, sp.ring.key)
