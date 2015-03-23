@@ -58,7 +58,8 @@ area_class <- as.factor(area_class)
 # 2. If same device, as on_trip, same as last point etc... (like labelling flights - test last point)
 
 last_on_trip <- FALSE
-trip_id <- NULL
+# Pre-size empty vector to avoid slow opperation of expanding vector
+trip_id <- rep(NULL, length(gps.points$device_info_serial))
 trip_id[1] <- 0
 trip_id_x <- 0
 for(i in 2:n){
