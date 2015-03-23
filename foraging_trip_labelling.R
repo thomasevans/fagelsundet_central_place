@@ -48,8 +48,8 @@ time_interval <- c(0,time_interval)
 
 
 # Get area class
-cuts <- c(-Inf, -100, 100, 1000, Inf)
-labs <- c("Land", "Littoral", "Coastal", "Pelagic")
+cuts <- c(-Inf, -50, 50, Inf)
+labs <- c("Land", "Coast", "Marine")
 area_class <- labs[findInterval(gps.points$coast_dist_sign, cuts)]
 area_class <- as.factor(area_class)
 
@@ -124,7 +124,7 @@ gps.db <- odbcConnectAccess2007('D:/Dropbox/tracking_db/GPS_db.accdb')
 
 #export trip information to the database
 #will be neccessary to edit table in Access after to define data-types and primary keys and provide descriptions for each variable.
-sqlSave(gps.db, out.tab, tablename = "fagelsundet_gulls_all_2014_gps_trip_id_par",
+sqlSave(gps.db, out.tab, tablename = "fagelsundet_gulls_all_2014_gps_trip_id_par2",
         append = FALSE,
         rownames = FALSE, colnames = FALSE, verbose = FALSE,
         safer = TRUE, addPK = FALSE,
