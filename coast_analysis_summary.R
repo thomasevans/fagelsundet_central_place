@@ -402,3 +402,18 @@ df_ind_area <- df_ind_area[!is.na(df_ind_area[,2]),]
 # Then add species
 # Add species category
 df_ind_area <- join(df_ind_area, sp.ring.key)
+
+
+
+
+# Prepare DF for plotting
+# Remove rows of NA categories
+df_ind_area <- df_ind_area[!is.na(df_ind_area[,2]),]
+
+
+
+
+
+# Plot figure of activity budget (whole period) ----
+# Plot
+plot.fun(df_ind_area, title.text = "", no_legend = FALSE)
