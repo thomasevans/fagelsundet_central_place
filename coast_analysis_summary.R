@@ -300,6 +300,7 @@ hist(points.trips$coast_dist_sign[cg]/1000, breaks = 2000,
 hist(points.trips$coast_dist_sign[lbbg]/1000, breaks = 10000,
      xlim = c(-1,2))
 
+# ?hist
 
 
 
@@ -326,3 +327,40 @@ hist(points.trips$coast_dist_sign[cg]/1000, breaks = 2000,
      xlim = x.lims, probability = TRUE)
 hist(points.trips$coast_dist_sign[lbbg]/1000, breaks = 10000,
      xlim = x.lims, probability = TRUE)
+
+
+
+# Histogram of distances by species -------
+# These are weighted by time (hours - w)
+
+library(ggplot2)
+
+# Make dataframe of weights (time interval - hours), distances (km) and species
+w <- points.trips$time_interval/60/60
+v <- points.trips$coast_dist_sign/1000
+s <- points.trips$species
+foo <- data.frame(v, w, s)
+
+# Basic plot
+a <- ggplot(foo, aes(v, weight = w)) 
+
+# Plot figure
+a + aes(y = ..density..) +
+  # bidwidth = 0.5 is 0.5 km intervals
+  geom_histogram(binwidth = .5) +
+  # scales = "free" allows different y-scales for each species
+  # facet by 's', species
+  facet_grid(s~. , scales = "free") +
+  ylab('Proportion of foraging time spent in 0.5 km bins') +
+  xlab('Distance from coastline (km)') +
+  theme(axis.text.x = element_text(angle = 0, size = 10, hjust = 0.5, vjust = 0.5),
+        axis.text = element_text(colour = 'black', size = 10),
+        axis.title = element_text(face = "bold",
+                                  colour = 'black', size = 14),
+        strip.text.x = element_text(size = 10, face = "italic"),
+        legend.text = element_text(size = 10),
+        legend.title = element_text(size = 10, face = "bold"))
+
+
+# Time spent in areas - activity budget - overall species -----
+
