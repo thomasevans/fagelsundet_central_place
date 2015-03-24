@@ -21,3 +21,4 @@ data_for_export.RData
 time_acitivty_habitat_early.pdf
 coast_analysis_summary.R
 *.png
+*.wmf
