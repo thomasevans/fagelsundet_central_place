@@ -48,7 +48,7 @@ time_interval <- c(0,time_interval)
 
 
 # Get area class
-cuts <- c(-Inf, -50, 50, Inf)
+cuts <- c(-Inf, -500, 500, Inf)
 labs <- c("Land", "Coast", "Marine")
 area_class <- labs[findInterval(gps.points$coast_dist_sign, cuts)]
 area_class <- as.factor(area_class)
