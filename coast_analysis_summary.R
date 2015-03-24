@@ -189,7 +189,11 @@ str(com.df)
 # Define plotting function ------
 # Using code from http://stackoverflow.com/questions/12664820/add-count-and-labels-to-stacked-bar-plot-with-facet-wrap#
 plot.fun <- function(x, title.text = "Proportion of time spent \n by area type",
-                     no_legend = FALSE){
+                     no_legend = FALSE,
+                     col.pal = "Set1",
+                     col.rev = FALSE,
+                     text.rot = 0,
+                     eq.size = FALSE){
   library(ggplot2)
   library(scales)
   library(RColorBrewer)
@@ -199,7 +203,7 @@ plot.fun <- function(x, title.text = "Proportion of time spent \n by area type",
   names(m)
   
   ar_lev <- levels(m$area_class)
-  ar_lev <- ar_lev[c(2,3,1,4)]
+  ar_lev <- ar_lev[c(2,1,3)]
   m$area_class <- factor(m$area_class, levels = ar_lev)
   
   
@@ -214,22 +218,31 @@ plot.fun <- function(x, title.text = "Proportion of time spent \n by area type",
   
   if(no_legend == TRUE) {a <- a + theme(legend.position="none")}
   
-  
+  col.fill <- (brewer.pal(3, col.pal))
+  if(col.rev){col.fill <- rev(col.fill)}
+
   # pdf("time_activity_habitat.pdf")
-  a +   facet_grid(~species, scales = "free", space = "free" ) +
-    geom_bar(stat = "identity", aes(fill = area_class, order = area_class), position = "fill") +      
-    scale_fill_manual(values = (brewer.pal(4, "Spectral")),
+ if(eq.size){
+   a <- a +   facet_grid(~species, scales = "free", space = "free" )} else {
+   a <- a +   facet_grid(~species, scales = "free")}
+  
+  a + geom_bar(stat = "identity", aes(fill = area_class, order = area_class), position = "fill") +     
+#     coord_flip() +
+    scale_fill_manual(values = col.fill,
                       name = "Area type") + 
   #   coord_flip() + 
     scale_y_continuous("Percent", labels = percent) +
     ylab('Percent') +
-    theme(axis.text.x = element_text(angle = 90, size = 10, hjust = 0.5, vjust = 0.5),
-          axis.text = element_text(colour = 'black', size = 10),
-          axis.title = element_text(face = "bold",
+    theme(axis.text.x = element_text(angle = 90 , size = 10, hjust = 0.5, vjust = 0.5),
+          axis.text = element_text(angle = text.rot, colour = 'black', size = 10),
+#           axis.text.x = element_text(angle = 90 - text.rot, colour = 'black', size = 10),
+          axis.title.y = element_text(angle = text.rot, face = "bold",
                                     colour = 'black', size = 14),
-          strip.text.x = element_text(size = 10, face = "italic"),
-          legend.text = element_text(size = 10),
-          legend.title = element_text(size = 10, face = "bold")) +
+          axis.title.x = element_text(angle = 270 - text.rot, face = "bold",
+                          colour = 'black', size = 14),        
+          strip.text.x = element_text(angle = text.rot, size = 10, face = "italic"),
+          legend.text = element_text(angle = text.rot, size = 10),
+          legend.title = element_text(angle = text.rot, size = 10, face = "bold")) +
     xlab("Bird ID") +
     ggtitle(title.text)
   # plot.all
@@ -345,10 +358,14 @@ foo <- data.frame(v, w, s)
 a <- ggplot(foo, aes(v, weight = w)) 
 
 pdf("foraging_distance_hist.pdf")
+png("foraging_distance_hist.png")
+win.metafile("foraging_distance_hist.wmf")
+# ?geom_histogram
 # Plot figure
 a + aes(y = ..density..) +
   # bidwidth = 0.5 is 0.5 km intervals
   geom_histogram(binwidth = .5) +
+  xlim(-50, 60) +
   # scales = "free" allows different y-scales for each species
   # facet by 's', species
   facet_grid(s~. , scales = "free") +
@@ -412,8 +429,26 @@ df_ind_area <- df_ind_area[!is.na(df_ind_area[,2]),]
 
 
 
+levels(df_ind_area$area_class)
+levels(df_ind_area$area_class) <- c("Coast", "Land", "Sea")
 
 
 # Plot figure of activity budget (whole period) ----
 # Plot
-plot.fun(df_ind_area, title.text = "", no_legend = FALSE)
+win.metafile("activity_plot_col.wmf")
+plot.fun(df_ind_area, title.text = "", no_legend = TRUE,
+         col.pal = "RdYlBu", col.rev = FALSE,
+         text.rot = 90,
+         eq.size = TRUE)
+# plot.fun(df_ind_area, title.text = "", no_legend = FALSE,
+#          col.pal = "RdYlBu", col.rev = FALSE)
+dev.off()
+
+pdf("activity_plot.pdf")
+png("activity_plot.png")
+win.metafile("activity_plot.wmf")
+plot.fun(df_ind_area, title.text = "", no_legend = TRUE,
+         col.pal = "Greys", col.rev = FALSE,
+         text.rot = 90,
+         eq.size = FALSE)
+dev.off()
