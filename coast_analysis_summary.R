@@ -47,10 +47,10 @@ gps.points$area_class <- as.factor(gps.points$area_class)
 levels(gps.points$area_class)
 
 # Set start and end dates for data to include
-date.s <-  as.POSIXct(strptime("2014-05-01 00:00:00",
+date.s <-  as.POSIXct(strptime("2014-05-25 00:00:00",
                                format = "%Y-%m-%d %H:%M:%S",
                                tz = "UTC"))
-date.e <-  as.POSIXct(strptime("2014-08-01 00:00:00",
+date.e <-  as.POSIXct(strptime("2014-07-06 00:00:00",
                                format = "%Y-%m-%d %H:%M:%S",
                                tz = "UTC"))
 
@@ -73,21 +73,19 @@ points.trips <- gps.points[f,]
 # 3. Lable time periods -----
 # Find time intervals
 time.per <- findInterval(points.trips$date_time,
-                         c(as.POSIXct("2014-05-15 00:00", tz = "UTC"),
-                           as.POSIXct("2014-06-01 00:00", tz = "UTC"),
-                           as.POSIXct("2014-06-15 00:00", tz = "UTC"),
-                           as.POSIXct("2014-07-01 00:00", tz = "UTC"),
-                           as.POSIXct("2014-07-15 00:00", tz = "UTC")))
+                         c(as.POSIXct("2014-05-25 00:00", tz = "UTC"),
+                           as.POSIXct("2014-06-08 00:00", tz = "UTC"),
+                           as.POSIXct("2014-06-22 00:00", tz = "UTC"),
+                           as.POSIXct("2014-07-06 00:00", tz = "UTC")))
 
-# summary(as.factor(time.per))
+summary(as.factor(time.per))
 
 # Label time intervals
 time.per[time.per == 0] <- NA
-time.per[time.per == 1] <- "may2"
-time.per[time.per == 2] <- "jun1"
-time.per[time.per == 3] <- "jun2"
-time.per[time.per == 4] <- "jul1"
-time.per[time.per == 5] <- NA
+time.per[time.per == 1] <- "per1"
+time.per[time.per == 2] <- "per2"
+time.per[time.per == 3] <- "per3"
+time.per[time.per == 4] <- NA
 time.per <- as.factor(time.per)
 
 # View summary
@@ -150,41 +148,41 @@ sp.ring.key <- droplevels(sp.ring.key)
 # Add species category
 df_ind_per <- join(df_ind_per, sp.ring.key)
 
-
-# Calculate mean by activity period for each species  -----
-df.sp <- ddply(points.trips, c("area_class", "time.per", "species"
-), function(x) colSums(x[c("time_interval")], na.rm = FALSE),
-.drop = FALSE)
-
-df.sp.time  <- ddply(points.trips, c("time.per", "species"
-), function(x) colSums(x[c("time_interval")], na.rm = FALSE),
-.drop = FALSE)
-
-
-# Calculate %
-df.sp$percent <- 100 * df.sp$time_interval / df.sp.time$time_interval
-
-
-# When no data for period, replace percentage values with zero
-df.sp$percent[df.sp$time_interval == 0] <- 0
-
-# Remove rows of NA categories
-df.sp <- df.sp[!is.na(df.sp[,2]),]
-
-
-df.sp$ring_number <- "mean"
-
-
-names(df.sp)
-names(df_ind_per)
-
-df.sp <- df.sp[,c(1,2,6,4,5,3)]
-
-com.df <- rbind.data.frame(df_ind_per, df.sp)
-#   ?rbind
-levels(com.df$ring_number)
-
-str(com.df)
+# 
+# # Calculate mean by activity period for each species  -----
+# df.sp <- ddply(points.trips, c("area_class", "time.per", "species"
+# ), function(x) colSums(x[c("time_interval")], na.rm = FALSE),
+# .drop = FALSE)
+# 
+# df.sp.time  <- ddply(points.trips, c("time.per", "species"
+# ), function(x) colSums(x[c("time_interval")], na.rm = FALSE),
+# .drop = FALSE)
+# 
+# 
+# # Calculate %
+# df.sp$percent <- 100 * df.sp$time_interval / df.sp.time$time_interval
+# 
+# 
+# # When no data for period, replace percentage values with zero
+# df.sp$percent[df.sp$time_interval == 0] <- 0
+# 
+# # Remove rows of NA categories
+# df.sp <- df.sp[!is.na(df.sp[,2]),]
+# 
+# 
+# df.sp$ring_number <- "mean"
+# 
+# 
+# names(df.sp)
+# names(df_ind_per)
+# 
+# df.sp <- df.sp[,c(1,2,6,4,5,3)]
+# 
+# com.df <- rbind.data.frame(df_ind_per, df.sp)
+# #   ?rbind
+# levels(com.df$ring_number)
+# 
+# str(com.df)
 
 # Define plotting function ------
 # Using code from http://stackoverflow.com/questions/12664820/add-count-and-labels-to-stacked-bar-plot-with-facet-wrap#
@@ -221,21 +219,17 @@ plot.fun <- function(x, title.text = "Proportion of time spent \n by area type",
   col.fill <- (brewer.pal(3, col.pal))
   if(col.rev){col.fill <- rev(col.fill)}
 
-  # pdf("time_activity_habitat.pdf")
  if(eq.size){
    a <- a +   facet_grid(~species, scales = "free", space = "free" )} else {
    a <- a +   facet_grid(~species, scales = "free")}
   
   a + geom_bar(stat = "identity", aes(fill = area_class, order = area_class), position = "fill") +     
-#     coord_flip() +
     scale_fill_manual(values = col.fill,
                       name = "Area type") + 
-  #   coord_flip() + 
     scale_y_continuous("Percent", labels = percent) +
     ylab('Percent') +
     theme(axis.text.x = element_text(angle = 90 , size = 10, hjust = 0.5, vjust = 0.5),
           axis.text = element_text(angle = text.rot, colour = 'black', size = 10),
-#           axis.text.x = element_text(angle = 90 - text.rot, colour = 'black', size = 10),
           axis.title.y = element_text(angle = text.rot, face = "bold",
                                     colour = 'black', size = 14),
           axis.title.x = element_text(angle = 270 - text.rot, face = "bold",
@@ -245,145 +239,172 @@ plot.fun <- function(x, title.text = "Proportion of time spent \n by area type",
           legend.title = element_text(angle = text.rot, size = 10, face = "bold")) +
     xlab("Bird ID") +
     ggtitle(title.text)
-  # plot.all
-  # dev.off()
 }
 
 
 
 # Plot figures for each time period -----
 
-# Function wrap
-plot.time.per.fun <- function(x.df, per = "may2",
-                              no_legend = TRUE){
-  # Choose time period, and drop now unused levels
-  x <- x.df[(x.df$time.per == per),c(3,1,5,6)]
-  x <- droplevels(x)
-#   levels(x$species)
+# # Function wrap
+# plot.time.per.fun <- function(x.df, per = "per1",
+#                               no_legend = TRUE,
+#                               ...){
+#   # Choose time period, and drop now unused levels
+#   x <- x.df[(x.df$time.per == per),c(3,1,5,6)]
+#   x <- droplevels(x)
+# #   levels(x$species)
+# 
+#   # Plot
+#   plot.fun(x, title.text = "", no_legend = no_legend)
+# }
 
-  # Plot
-  plot.fun(x, title.text = "", no_legend = no_legend)
-}
-
-png("time_area_may2.png")
-plot.time.per.fun(x.df = com.df, per = "may2")
+png("time_area_per1.png")
+plot.fun(df_ind_per[df_ind_per$time.per == "per1",],
+                  title.text = "", no_legend = TRUE,
+                  col.pal = "Greys", col.rev = FALSE,
+                  text.rot = 90,
+                  eq.size = FALSE)
 dev.off()
 
-png("time_area_jun1.png")
-plot.time.per.fun(x.df = com.df, per = "jun1")
+png("time_area_per2.png")
+plot.fun(df_ind_per[df_ind_per$time.per == "per2",],
+         title.text = "", no_legend = TRUE,
+         col.pal = "Greys", col.rev = FALSE,
+         text.rot = 90,
+         eq.size = FALSE)
 dev.off()
 
-png("time_area_jun2.png")
-plot.time.per.fun(x.df = com.df, per = "jun2")
+png("time_area_per3.png")
+plot.fun(df_ind_per[df_ind_per$time.per == "per3",],
+         title.text = "", no_legend = TRUE,
+         col.pal = "Greys", col.rev = FALSE,
+         text.rot = 90,
+         eq.size = FALSE)
 dev.off()
 
-png("time_area_jul1.png")
-plot.time.per.fun(x.df = com.df, per = "jul1")
-dev.off()
 
-
-
-hist(points.trips$coast_dist_sign/1000, breaks = 200)
-
-hist(points.trips$coast_dist_sign/1000, breaks = 100,
-     xlim = c(-50,50))
-
-
-hist(points.trips$coast_dist_sign/1000, breaks = 20000,
-     xlim = c(-5,5))
-
-
-hist(points.trips$coast_dist_sign/1000, breaks = 20000,
-     xlim = c(-1,2))
-
-
-hg <- points.trips$species == "Larus argentatus"
-gbbg <- points.trips$species == "Larus marinus"
-cg <- points.trips$species == "Larus canus"
-lbbg <- points.trips$species == "Larus fuscus"
-
-
-par(mfrow=c(4,1))
-hist(points.trips$coast_dist_sign[hg]/1000, breaks = 20000,
-     xlim = c(-1,2))
-hist(points.trips$coast_dist_sign[gbbg]/1000, breaks = 2000,
-     xlim = c(-1,2))
-hist(points.trips$coast_dist_sign[cg]/1000, breaks = 2000,
-     xlim = c(-1,2))
-hist(points.trips$coast_dist_sign[lbbg]/1000, breaks = 10000,
-     xlim = c(-1,2))
-
-# ?hist
-
-
-
-par(mfrow=c(4,1))
-hist(points.trips$coast_dist_sign[hg]/1000, breaks = 20000,
-     xlim = c(-20,50))
-hist(points.trips$coast_dist_sign[gbbg]/1000, breaks = 2000,
-     xlim = c(-20,50))
-hist(points.trips$coast_dist_sign[cg]/1000, breaks = 2000,
-     xlim = c(-20,50))
-hist(points.trips$coast_dist_sign[lbbg]/1000, breaks = 10000,
-     xlim = c(-20,50))
-
-
-
-x.lims <- c(-50,50)
-par(mfrow=c(4,1))
-hist(points.trips$coast_dist_sign[hg]/1000, breaks = 20000,
-     xlim = x.lims, probability = TRUE)
-# ?hist
-hist(points.trips$coast_dist_sign[gbbg]/1000, breaks = 2000,
-     xlim = x.lims, probability = TRUE)
-hist(points.trips$coast_dist_sign[cg]/1000, breaks = 2000,
-     xlim = x.lims, probability = TRUE)
-hist(points.trips$coast_dist_sign[lbbg]/1000, breaks = 10000,
-     xlim = x.lims, probability = TRUE)
+# 
+# 
+# hist(points.trips$coast_dist_sign/1000, breaks = 200)
+# 
+# hist(points.trips$coast_dist_sign/1000, breaks = 100,
+#      xlim = c(-50,50))
+# 
+# 
+# hist(points.trips$coast_dist_sign/1000, breaks = 20000,
+#      xlim = c(-5,5))
+# 
+# 
+# hist(points.trips$coast_dist_sign/1000, breaks = 20000,
+#      xlim = c(-1,2))
+# 
+# 
+# hg <- points.trips$species == "Larus argentatus"
+# gbbg <- points.trips$species == "Larus marinus"
+# cg <- points.trips$species == "Larus canus"
+# lbbg <- points.trips$species == "Larus fuscus"
+# 
+# 
+# par(mfrow=c(4,1))
+# hist(points.trips$coast_dist_sign[hg]/1000, breaks = 20000,
+#      xlim = c(-1,2))
+# hist(points.trips$coast_dist_sign[gbbg]/1000, breaks = 2000,
+#      xlim = c(-1,2))
+# hist(points.trips$coast_dist_sign[cg]/1000, breaks = 2000,
+#      xlim = c(-1,2))
+# hist(points.trips$coast_dist_sign[lbbg]/1000, breaks = 10000,
+#      xlim = c(-1,2))
+# 
+# # ?hist
+# 
+# 
+# 
+# par(mfrow=c(4,1))
+# hist(points.trips$coast_dist_sign[hg]/1000, breaks = 20000,
+#      xlim = c(-20,50))
+# hist(points.trips$coast_dist_sign[gbbg]/1000, breaks = 2000,
+#      xlim = c(-20,50))
+# hist(points.trips$coast_dist_sign[cg]/1000, breaks = 2000,
+#      xlim = c(-20,50))
+# hist(points.trips$coast_dist_sign[lbbg]/1000, breaks = 10000,
+#      xlim = c(-20,50))
+# 
+# 
+# 
+# x.lims <- c(-50,50)
+# par(mfrow=c(4,1))
+# hist(points.trips$coast_dist_sign[hg]/1000, breaks = 20000,
+#      xlim = x.lims, probability = TRUE)
+# # ?hist
+# hist(points.trips$coast_dist_sign[gbbg]/1000, breaks = 2000,
+#      xlim = x.lims, probability = TRUE)
+# hist(points.trips$coast_dist_sign[cg]/1000, breaks = 2000,
+#      xlim = x.lims, probability = TRUE)
+# hist(points.trips$coast_dist_sign[lbbg]/1000, breaks = 10000,
+#      xlim = x.lims, probability = TRUE)
 
 
 
 # Histogram of distances by species -------
 # These are weighted by time (hours - w)
 
-library(ggplot2)
-
-# Make dataframe of weights (time interval - hours), distances (km) and species
-w <- points.trips$time_interval/60/60
-v <- points.trips$coast_dist_sign/1000
-s <- points.trips$species
-foo <- data.frame(v, w, s)
-
-# Basic plot
-a <- ggplot(foo, aes(v, weight = w)) 
+ggplot.hist.dist <- function(x){
+  library(ggplot2)
+  
+  # Make dataframe of weights (time interval - hours), distances (km) and species
+  w <- x$time_interval/60/60
+  v <- x$coast_dist_sign/1000
+  s <- x$species
+  foo <- data.frame(v, w, s)
+  
+  # Basic plot
+  a <- ggplot(foo, aes(v, weight = w)) 
+  
+  
+  # ?geom_histogram
+  # Plot figure
+  a + aes(y = ..density..) +
+    # bidwidth = 0.5 is 0.5 km intervals
+    geom_histogram(binwidth = .5) +
+    xlim(-50, 60) +
+    # scales = "free" allows different y-scales for each species
+    # facet by 's', species
+    facet_grid(s~. , scales = "free") +
+    ylab('Proportion of foraging time spent in 0.5 km bins') +
+    xlab('Distance from coastline (km)') +
+    # Set some aesthetic paramaters
+    theme(axis.text.x = element_text(angle = 0, size = 10, hjust = 0.5, vjust = 0.5),
+          axis.text = element_text(colour = 'black', size = 10),
+          axis.title = element_text(face = "bold",
+                                    colour = 'black', size = 14),
+          strip.text.x = element_text(size = 10, face = "italic"),
+          legend.text = element_text(size = 10),
+          legend.title = element_text(size = 10, face = "bold"))
+}
 
 pdf("foraging_distance_hist.pdf")
-png("foraging_distance_hist.png")
+png("foraging_distance_hist_all.png")
 win.metafile("foraging_distance_hist.wmf")
-# ?geom_histogram
-# Plot figure
-a + aes(y = ..density..) +
-  # bidwidth = 0.5 is 0.5 km intervals
-  geom_histogram(binwidth = .5) +
-  xlim(-50, 60) +
-  # scales = "free" allows different y-scales for each species
-  # facet by 's', species
-  facet_grid(s~. , scales = "free") +
-  ylab('Proportion of foraging time spent in 0.5 km bins') +
-  xlab('Distance from coastline (km)') +
-  # Set some aesthetic paramaters
-  theme(axis.text.x = element_text(angle = 0, size = 10, hjust = 0.5, vjust = 0.5),
-        axis.text = element_text(colour = 'black', size = 10),
-        axis.title = element_text(face = "bold",
-                                  colour = 'black', size = 14),
-        strip.text.x = element_text(size = 10, face = "italic"),
-        legend.text = element_text(size = 10),
-        legend.title = element_text(size = 10, face = "bold"))
+ggplot.hist.dist(points.trips)
 dev.off()
-# getwd()
 
+# per 1
+png("foraging_distance_hist_per1.png")
+# win.metafile("foraging_distance_hist.wmf")
+ggplot.hist.dist(points.trips[points.trips$time.per == "per1",])
+dev.off()
 
+# per 2
+png("foraging_distance_hist_per2.png")
+# win.metafile("foraging_distance_hist.wmf")
+ggplot.hist.dist(points.trips[points.trips$time.per == "per2",])
+dev.off()
 
+# per 3
+png("foraging_distance_hist_per3.png")
+# win.metafile("foraging_distance_hist.wmf")
+ggplot.hist.dist(points.trips[points.trips$time.per == "per3",])
+dev.off()
 
 # Time spent in areas - activity budget - overall species -----
 
@@ -445,10 +466,13 @@ plot.fun(df_ind_area, title.text = "", no_legend = TRUE,
 dev.off()
 
 pdf("activity_plot.pdf")
-png("activity_plot.png")
+png("activity_plot_all.png")
 win.metafile("activity_plot.wmf")
 plot.fun(df_ind_area, title.text = "", no_legend = TRUE,
          col.pal = "Greys", col.rev = FALSE,
          text.rot = 90,
          eq.size = FALSE)
 dev.off()
+
+
+
