@@ -6,6 +6,7 @@ library("dplyr")
 library("ggplot2")
 library(scales)
 library(cowplot)
+library("maptools")
 
 # 1. Load in relevant data -----
 
@@ -65,10 +66,11 @@ theme_new <- theme_bw(base_size = 14, base_family = "serif") +
         legend.justification = c(1, 1),
         legend.key.size =   unit(2, "lines"),
         legend.key = element_rect(colour =NA),
-        legend.text = element_text(size = 12),
+        legend.text = element_text(size = 12, face = "italic"),
         axis.text = element_text(size = 14),
         axis.title = element_text(size = 14),
         legend.text.align = 0,
+        # legend.text = element_text(colour="blue", size = 16, face = "bold")
         legend.key.width = unit(3, "lines"),
         legend.title = element_blank()
   )
@@ -77,7 +79,7 @@ theme_new <- theme_bw(base_size = 14, base_family = "serif") +
 ggplot(gps.points[gps.points$speed>0.5,], aes(speed, colour = species_latin_name)) +
   geom_density(adjust = 1/4, lwd = 1, alpha = 0.7) +
   xlim(0,30)+
-  # ylim(0,0.2)+
+  ylim(0,0.2)+
   geom_vline(xintercept = 3, lwd = 1.5, lty = 2,
              col = "black",
              alpha = 0.5) +
@@ -86,11 +88,11 @@ ggplot(gps.points[gps.points$speed>0.5,], aes(speed, colour = species_latin_name
             y = "Density",
             colour = "Species")) 
 
-ggsave(filename = "ground_speed_gulls_2.svg", width = 5, height = 4,
+ggsave(filename = "ground_speed_gulls_1.svg", width = 5, height = 4,
        units = "in")
-ggsave(filename = "ground_speed_gulls_2.png", width = 5, height = 4,
+ggsave(filename = "ground_speed_gulls_1.png", width = 5, height = 4,
        units = "in")
-ggsave(filename = "ground_speed_gulls_2.pdf", width = 5, height = 4,
+ggsave(filename = "ground_speed_gulls_1.pdf", width = 5, height = 4,
        units = "in")
 
 
@@ -123,50 +125,22 @@ trips.df <- summarise(group_by(filter(gps.points, trip_id !=  0),
                       end_time = last(date_time),
                       duration_s = end_time - start_time,
 
-#                       #p_flight
-#                       flight_duration = sum(time_interval[speed > 3 & !is.na(speed)], na.rm = TRUE),
-#                       p_flight = flight_duration/duration_s,
-#                       
-#                       #p areas
-#                       p_sea = sum(time_interval[area_class == "Marine"], na.rm = TRUE)/duration_s,
-#                       p_coast = sum(time_interval[area_class == "Coast"], na.rm = TRUE)/duration_s,
-#                       p_land = sum(time_interval[area_class == "Land"], na.rm = TRUE)/duration_s,
-#                       p_landfill = sum(time_interval[landfill_dist_min <0.5], na.rm = TRUE)/duration_s,
-#                       p_light = sum(time_interval[light_dist_min <0.05], na.rm = TRUE)/duration_s,
-                      
                       # Quality criteria
                       gps_time_interval_min = min(time_interval, na.rm = TRUE),
                       gps_time_interval_max = max(time_interval, na.rm = TRUE),
                       gps_time_interval_median = median(time_interval, na.rm = TRUE),
-#                       gps_time_interval_first = first(time_interval),
-#                       gps_time_interval_first_max = gps_time_interval_max == gps_time_interval_first,
-#                       gps_time_interval_max_5h = gps_time_interval_max >5*60*60,
                       n_points = n()
-                      
                       
                       )
 
 
 
-
+# perform calculations excluding first record of foraging trip
+# First record will often have longer time interval (if have set
+# fence around colony with long time intervals)
 trips.df2 <- summarise(group_by(filter(gps.points, trip_id !=  0),
                                trip_id) %>% slice(2:n()) %>% group_by(trip_id),
                       
-#                       #details
-#                       ring_number = first(ring_number),
-#                       device_info_serial = first(device_info_serial),
-#                       species = first(species_latin_name),
-#                       
-#                       
-#                       # Variables to extract
-#                       #Coldist
-#                       coldist_max = max(col_dist, na.rm = TRUE),
-#                       col_dist_mean = mean(col_dist, na.rm = TRUE),
-#                       col_dist_median = median(col_dist, na.rm = TRUE),
-#                       
-#                       #duration + time
-#                       start_time = first(date_time),
-#                       end_time = last(date_time),
                       duration_s_sum = sum(time_interval, na.rm =TRUE),
                       
                       #p_flight
@@ -180,13 +154,6 @@ trips.df2 <- summarise(group_by(filter(gps.points, trip_id !=  0),
                       p_landfill = sum(time_interval[landfill_dist_min <0.5], na.rm = TRUE)/duration_s_sum,
                       p_light = sum(time_interval[light_dist_min <0.05], na.rm = TRUE)/duration_s_sum,
                       
-#                       # Quality criteria
-#                       gps_time_interval_min = min(time_interval, na.rm = TRUE),
-#                       gps_time_interval_max = max(time_interval, na.rm = TRUE),
-#                       gps_time_interval_median = median(time_interval, na.rm = TRUE),
-#                       gps_time_interval_first = first(time_interval),
-#                       gps_time_interval_first_max = gps_time_interval_max == gps_time_interval_first,
-#                       gps_time_interval_max_5h = gps_time_interval_max >5*60*60,
                       n_points2 = n()
                       
                       
@@ -195,32 +162,97 @@ trips.df2 <- summarise(group_by(filter(gps.points, trip_id !=  0),
 
 trips.all <- merge(trips.df,trips.df2,by="trip_id")
 
-
-# gps.points$light_dist_min[1:100]
 # 
 # 
-# hist(gps.points$time_interval[gps.points$time_interval < 10000], breaks = 100, xlim = c(0,10000))
-# x <- filter(gps.points, trip_id == 20)
-# 1500/60
+# hist(trips.df$coldist_max, xlim = c(0,60000), breaks = 1000)
 # 
-# summary(gps.points$time_interval > 1500 & gps.points$trip_id > 0)
-
-hist(trips.df$coldist_max, xlim = c(0,60000), breaks = 1000)
-
-hist(trips.df$col_dist_median, xlim = c(0,60000), breaks = 1000)
-
-hist(trips.df2$p_sea[trips.df2$p_sea <2], breaks = 100)
-hist(trips.df2$p_coast[trips.df2$p_coast <2], breaks = 100)
-hist(trips.df2$p_land[trips.df2$p_land <2], breaks = 100)
-hist(trips.df2$p_landfill[trips.df2$p_landfill <2], breaks = 20)
-hist(trips.df2$p_light[trips.df2$p_light <2], breaks = 20)
-sort(trips.df2$p_light, decreasing = TRUE)
-sort(trips.df2$p_sea)
-
-
-x <- filter(trips.df2, p_sea >1.1)
+# hist(trips.df$col_dist_median, xlim = c(0,60000), breaks = 1000)
+# 
+# hist(trips.df2$p_sea[trips.df2$p_sea <2], breaks = 100)
+# hist(trips.df2$p_coast[trips.df2$p_coast <2], breaks = 100)
+# hist(trips.df2$p_land[trips.df2$p_land <2], breaks = 100)
+# hist(trips.df2$p_landfill[trips.df2$p_landfill <2], breaks = 20)
+# hist(trips.df2$p_light[trips.df2$p_light <2], breaks = 20)
+# sort(trips.df2$p_light, decreasing = TRUE)
+# sort(trips.df2$p_sea)
+# 
+# 
+# x <- filter(trips.df2, p_sea >1.1)
   
 # ?sort
 
 # 4. Add additional trip level info ---------
 # Departure times according to sunrise
+# See what I did with trips in device_effect
+
+
+#sunrise/set times
+# Island centre
+lon <- 17.9328291
+lat <- 60.6309369
+coord <- matrix(c(lon, lat), nrow = 1)
+trips.all$sunrise <- sunriset(coord, trips.all$start_time, direction = "sunrise",
+                    POSIXct.out = TRUE)[,2]
+trips.all$sunset <- sunriset(coord, trips.all$start_time, direction = "sunset",
+                   POSIXct.out = TRUE)[,2]
+
+# hist(trips.all$sunset, breaks = "mins")
+# ?hist.POSIXt
+
+
+# Trip departure at night/day
+fun_time <- function(sun_r, sun_s, t){
+  if(t<sun_r) x <- "NIGHT" else{
+    if(t<sun_s) x <- "DAY" else{
+      x <- "NIGHT"
+    }
+  }
+  return(x)
+}
+
+trips.all$time_of_day <- mapply(fun_time, sun_r = trips.all$sunrise,
+                                sun_s = trips.all$sunset,
+                                t = trips.all$start_time)
+# See how this looks
+summary(as.factor(trips.all$time_of_day))
+
+# Departure time relative to sunrise and sunset times (difference in hours)
+sunrise_after_h <- (as.numeric(trips.all$start_time - trips.all$sunrise)/60/60)
+x <- sunrise_after_h - 12
+x <- x + 24
+x <- x %% 24
+x <- x-12
+hist(x)
+
+trips.all$sunrise_after_h <- x
+
+sunset_after_h <- (as.numeric(trips.all$start_time - trips.all$sunset)/60/60)
+x <- sunset_after_h - 12
+x <- x + 24
+x <- x %% 24
+x <- x-12
+hist(x, breaks = 24)
+
+trips.all$sunset_after_h <- x
+# ?"%.%"
+
+
+# 5. Output to DB ------
+gps.db <- odbcConnectAccess2007('D:/Dropbox/tracking_db/GPS_db.accdb')
+
+
+#export trip information to the database
+#will be neccessary to edit table in Access after to define data-types and primary keys and provide descriptions for each variable.
+sqlSave(gps.db, trips.all, tablename = "fagelsundet_gulls_all_2014_trips_info",
+        append = FALSE,
+        rownames = FALSE, colnames = FALSE, verbose = FALSE,
+        safer = TRUE, addPK = FALSE,
+        fast = TRUE, test = FALSE, nastring = NULL,
+        varTypes = c(start_time = "Date", end_time = "Date",
+                     sunrise = "Date", sunset = "Date")
+)
+
+close(gps.db)
+
+
+
