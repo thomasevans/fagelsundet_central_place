@@ -23,9 +23,10 @@ gps.db <- odbcConnectAccess2007('D:/Dropbox/tracking_db/GPS_db.accdb')
 # Get data
 gps.points <- sqlQuery(gps.db,
                        query =
-                      "SELECT DISTINCT g.device_info_serial, g.date_time, t.trip_1km, c.coast_dist_sign
-FROM (fagelsundet_gulls_all_2014_gps_points AS g INNER JOIN fagelsundet_gulls_all_2014_gps_coldist AS t ON (g.date_time = t.date_time) AND (g.device_info_serial = t.device_info_serial)) INNER JOIN fagelsundet_gulls_all_2014_gps_coastdist AS c ON (g.date_time = c.date_time) AND (g.device_info_serial = c.device_info_serial)
-ORDER BY g.device_info_serial, g.date_time;"
+                      "SELECT DISTINCT g.device_info_serial, g.date_time, t.trip_1km, c.coast_dist_sign, t.col_dist
+FROM (fagelsundet_gulls_all_2014_gps_points AS g INNER JOIN fagelsundet_gulls_all_2014_gps_coldist AS t ON (g.device_info_serial = t.device_info_serial) AND (g.date_time = t.date_time)) INNER JOIN fagelsundet_gulls_all_2014_gps_coastdist AS c ON (g.device_info_serial = c.device_info_serial) AND (g.date_time = c.date_time)
+                      ORDER BY g.device_info_serial, g.date_time;
+                      "
                        ,as.is = TRUE)
 
 
@@ -34,6 +35,9 @@ gps.points$date_time <-  as.POSIXct(strptime(gps.points$date_time,
                                              tz = "UTC"))
 
 gps.points$trip_1km <- as.logical(gps.points$trip_1km)
+
+gps.points$trip <- ifelse(gps.points$col_dist < 500, FALSE, TRUE)
+
 
 str(gps.points)
 
@@ -70,7 +74,7 @@ for(i in 2:n){
     time_interval[i] <- 0
   }
   
-  if(gps.points$trip_1km[i] == TRUE){
+  if(gps.points$trip[i] == TRUE){
     if((last_on_trip == TRUE) & (a == FALSE)) {trip_id[i] <- trip_id_x
     } else {trip_id[i] <- trip_id_x + 1
           trip_id_x <- trip_id_x + 1
@@ -85,7 +89,7 @@ for(i in 2:n){
 # 4. Replace colony based locations with label 'colony' ----
 area_class2 <- area_class
 levels(area_class2) <- c(levels(area_class2), "Colony")
-area_class2[gps.points$trip_1km == FALSE] <- "Colony"
+area_class2[gps.points$trip == FALSE] <- "Colony"
 summary(area_class2)
 
 # 5. Output new table   ------
@@ -125,7 +129,7 @@ gps.db <- odbcConnectAccess2007('D:/Dropbox/tracking_db/GPS_db.accdb')
 
 #export trip information to the database
 #will be neccessary to edit table in Access after to define data-types and primary keys and provide descriptions for each variable.
-sqlSave(gps.db, out.tab, tablename = "fagelsundet_gulls_all_2014_gps_trip_id_par2",
+sqlSave(gps.db, out.tab, tablename = "fagelsundet_gulls_all_2014_gps_trip_id_par",
         append = FALSE,
         rownames = FALSE, colnames = FALSE, verbose = FALSE,
         safer = TRUE, addPK = FALSE,
