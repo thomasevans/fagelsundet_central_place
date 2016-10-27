@@ -181,3 +181,53 @@ group_by(bird_day = paste(ring_number, j_day, sep = "_")) %>%
 #   last(x), "%H")) -  (as.numeric(
 #     format(last(x), "%M"))/60)
 # 27/60
+
+
+# Find missing days -----
+ring_numbers <- unique(gps.points$ring_number)
+# j_days_include
+
+x <- expand.grid(ring_numbers, j_days_include)
+all.days <- cbind.data.frame(paste(x[,1],x[,2],sep="_"), x)
+names(all.days) <- c("bird_day", "ring_number", "j_day")
+all.days <- arrange(all.days, bird_day)
+
+# Merge all.days + deployment info to include species and device_info_serial
+all.days <- merge(all.days,
+                    deployments[,c(2,3,13)],
+                    by.x = "ring_number",
+                    by.y = "ring_number",
+                    all.x = TRUE,
+                    all.y = FALSE)
+names(all.days)[5] <- "species"
+# all.days$bird_day
+
+all.days$bird_day <- as.character(all.days$bird_day)
+
+# Combine with day info
+all.days.combined <- merge(all.days, day.df,
+                           by = intersect(names(all.days), names(days.df)),
+                           all.x = TRUE)
+
+# Add null data for days with no data
+all.days.combined$no_data <- TRUE
+all.days.combined$no_data[!is.na(all.days.combined$n_points)] <- FALSE
+
+
+
+
+
+ggplot(all.days.combined, aes(j_day, ring_number, fill = 100*p_colony)) + 
+  geom_tile(colour = "white") + 
+  scale_fill_gradient2(low = muted("red"), mid = "white",
+                       high = muted("blue"), midpoint = 5, space = "Lab",
+                       na.value = "grey50", guide = "colourbar")+
+  facet_grid(species~., scales = "free" , space = "free_y")
+
+#   
+#   scale_colour_gradient2(low = "red", mid = "white", high = "blue", midpoint = 50, breaks = seq(0,1,0.05))+
+  # scale_colour_gradient2(aes(midpoint = 0.5)) +
+  # scale_fill_gradientn(colours = c("#D61818","#FFAE63","#FFFFBD","#B5E384")) + 
+  # facet_wrap(~ species, ncol = 1)
+# ?facet_grid
+  
