@@ -60,6 +60,11 @@ gps.points <- merge(gps.points,
 gps.points <- filter(gps.points, species_latin_name !=  "Hydroprogne caspia")
 
 
+
+# Load resampled data (600 s time interval)
+load("gps.points.trips.ltraj.600.df.RData")
+
+
 # 2. Determine flight speed cut-offs for each species ------
 theme_new <- theme_bw(base_size = 14, base_family = "serif") +
   theme(legend.position = c(1, 1),
@@ -119,6 +124,8 @@ trips.df <- summarise(group_by(filter(gps.points, trip_id !=  0),
                       coldist_max = max(col_dist, na.rm = TRUE),
                       col_dist_mean = mean(col_dist, na.rm = TRUE),
                       col_dist_median = median(col_dist, na.rm = TRUE),
+                      col_dist_start = col_dist[1],
+                      col_dist_end = col_dist[n()],
 
                                             #duration + time
                       start_time = first(date_time),
@@ -154,13 +161,54 @@ trips.df2 <- summarise(group_by(filter(gps.points, trip_id !=  0),
                       p_landfill = sum(time_interval[landfill_dist_min <0.5], na.rm = TRUE)/duration_s_sum,
                       p_light = sum(time_interval[light_dist_min <0.05], na.rm = TRUE)/duration_s_sum,
                       
-                      n_points2 = n()
+                      n_points2 = n(),
                       
+                      # Quality criteria
+                      gps_time_interval_min_ex1 = min(time_interval, na.rm = TRUE),
+                      gps_time_interval_max_ex1 = max(time_interval, na.rm = TRUE),
+                      gps_time_interval_median_ex1 = median(time_interval, na.rm = TRUE)
                       
 )
 
 
 trips.all <- merge(trips.df,trips.df2,by="trip_id")
+
+
+
+
+
+
+# perform calculations on regular time interval data
+trips.df3 <- summarise(group_by(filter(gps.points.trips.ltraj.600.df, burst !=  0),
+                                burst) %>% slice(2:n()) %>% group_by(burst),
+                       
+                       n_points_interp = n(),
+                       
+                       # Distance calculations
+                       p2p_dist_interp_sum_km = (sum(p2p_dist) - first(p2p_dist))/1000,
+                       p2p_dist_interp_sum_km_inc_col = p2p_dist_interp_sum_km +
+                         (first(col.dist)/1000) + (last(col.dist)/1000),
+                       col_dist_max_interp_km = (max(col.dist))/1000,
+                       tortoisity = p2p_dist_interp_sum_km_inc_col/(2*col_dist_max_interp_km)
+                       
+)
+
+hist(trips.df3$tortoisity, breaks = 1000, xlim = c(0,6))
+
+names(trips.df3)[1] <- "trip_id"
+trips.all <- merge(trips.all,trips.df3,by="trip_id")
+
+
+# 
+# trips.df3.f <- filter(trips.df3, tortoisity <1)
+# 
+# f <- gps.points$trip_id == 1102
+# f2 <- gps.points.trips.ltraj.600.df$burst == 1102
+# 
+# plot(gps.points$latitude[f]~
+#        gps.points$longitude[f])
+# points(gps.points.trips.ltraj.600.df$y[f2]~
+#          gps.points.trips.ltraj.600.df$x[f2], col = "red")
 
 # 
 # 
@@ -195,6 +243,9 @@ trips.all$sunrise <- sunriset(coord, trips.all$start_time, direction = "sunrise"
                     POSIXct.out = TRUE)[,2]
 trips.all$sunset <- sunriset(coord, trips.all$start_time, direction = "sunset",
                    POSIXct.out = TRUE)[,2]
+trips.all$solarnoon <- solarnoon(coord, trips.all$start_time,
+                             POSIXct.out = TRUE)[,2]
+# ?sunriset
 
 # hist(trips.all$sunset, breaks = "mins")
 # ?hist.POSIXt
@@ -237,13 +288,63 @@ trips.all$sunset_after_h <- x
 # ?"%.%"
 
 
+
+solarnoon_after_h <- (as.numeric(trips.all$start_time - trips.all$solarnoon)/60/60)
+x <- solarnoon_after_h - 12
+x <- x + 24
+x <- x %% 24
+x <- x-12
+hist(x, breaks = 24)
+
+trips.all$solarnoon_after_h <- x
+
+
+
+# Relative to trip mid-points
+trips.all$time_midpoint <- trips.all$start_time + (trips.all$end_time - trips.all$start_time)/2
+
+
+
+# Midpoint time relative to sunrise and sunset times (difference in hours)
+sunrise_after_h <- (as.numeric(trips.all$time_midpoint - trips.all$sunrise)/60/60)
+x <- sunrise_after_h - 12
+x <- x + 24
+x <- x %% 24
+x <- x-12
+hist(x)
+
+trips.all$sunrise_after_h_mid <- x
+
+sunset_after_h <- (as.numeric(trips.all$time_midpoint - trips.all$sunset)/60/60)
+x <- sunset_after_h - 12
+x <- x + 24
+x <- x %% 24
+x <- x-12
+hist(x, breaks = 24)
+
+trips.all$sunset_after_h_mid <- x
+# ?"%.%"
+
+
+
+solarnoon_after_h <- (as.numeric(trips.all$time_midpoint - trips.all$solarnoon)/60/60)
+x <- solarnoon_after_h - 12
+x <- x + 24
+x <- x %% 24
+x <- x-12
+hist(x, breaks = 24)
+
+trips.all$solarnoon_after_h_mid <- x
+
+
+
 # 5. Output to DB ------
 gps.db <- odbcConnectAccess2007('D:/Dropbox/tracking_db/GPS_db.accdb')
 
 
 #export trip information to the database
 #will be neccessary to edit table in Access after to define data-types and primary keys and provide descriptions for each variable.
-sqlSave(gps.db, trips.all, tablename = "fagelsundet_gulls_all_2014_trips_info",
+sqlSave(gps.db, trips.all, tablename = "fagelsundet_gulls_all_2014_trips_info_new",
         append = FALSE,
         rownames = FALSE, colnames = FALSE, verbose = FALSE,
         safer = TRUE, addPK = FALSE,

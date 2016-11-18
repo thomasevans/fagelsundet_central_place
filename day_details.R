@@ -64,7 +64,7 @@ gps.points <- filter(gps.points, species_latin_name !=  "Hydroprogne caspia")
 # 2. Summary info for each calendar day -------
 # For each trip do following ...
 # Probably use plyr thing for speed an efficiency
-browseVignettes(package = "dplyr")
+# browseVignettes(package = "dplyr")
 
 
 # get julian day for each point
@@ -206,7 +206,7 @@ all.days$bird_day <- as.character(all.days$bird_day)
 
 # Combine with day info
 all.days.combined <- merge(all.days, day.df,
-                           by = intersect(names(all.days), names(days.df)),
+                           by = intersect(names(all.days), names(day.df)),
                            all.x = TRUE)
 
 # Add null data for days with no data
@@ -215,19 +215,44 @@ all.days.combined$no_data[!is.na(all.days.combined$n_points)] <- FALSE
 
 
 
+all.days.combined$p_colony_NA <- all.days.combined$p_colony
+all.days.combined$p_colony_NA[all.days.combined$gap_max_4h] <- NA
 
-
-ggplot(all.days.combined, aes(j_day, ring_number, fill = 100*p_colony)) + 
+ggplot(all.days.combined, aes(j_day, ring_number, fill = 100*p_colony_NA)) + 
   geom_tile(colour = "white") + 
   scale_fill_gradient2(low = muted("red"), mid = "white",
-                       high = muted("blue"), midpoint = 5, space = "Lab",
+                       high = muted("green"), midpoint = 15, space = "Lab",
                        na.value = "grey50", guide = "colourbar")+
   facet_grid(species~., scales = "free" , space = "free_y")
 
-#   
-#   scale_colour_gradient2(low = "red", mid = "white", high = "blue", midpoint = 50, breaks = seq(0,1,0.05))+
-  # scale_colour_gradient2(aes(midpoint = 0.5)) +
-  # scale_fill_gradientn(colours = c("#D61818","#FFAE63","#FFFFBD","#B5E384")) + 
-  # facet_wrap(~ species, ncol = 1)
-# ?facet_grid
+ggsave(file="colony_attendance_day_gap_4h.png")
+ggsave(file="colony_attendance_incl_gap.png")
+
+# Try with 3-categories:
+# -Visited colony
+# -Didn't visit
+# -Missing data (6h??)
+summary(all.days.combined$colony_visited)
+all.days.combined$colony_visited_NA <- all.days.combined$colony_visited
+all.days.combined$colony_visited_NA[!all.days.combined$colony_visited_NA & all.days.combined$gap_max >6] <- NA
+
+ggplot(all.days.combined, aes(j_day, ring_number, fill = colony_visited_NA)) + 
+  geom_tile(colour = "white") + 
+#   scale_fill_gradient2(low = muted("red"), mid = "white",
+#                        high = muted("green"), midpoint = 15, space = "Lab",
+#                        na.value = "grey50", guide = "colourbar")+
+  facet_grid(species~., scales = "free" , space = "free_y")
+
+ggsave(file="colony_attendance_binnary_NA_gap6h.png")
+
+
+
+hist(gps.points$time_interval[gps.points$time_interval <1000])
+  summary(gps.points$time_interval <1000)
+  
+  
+  day_s <- 24*60*60
+  day_s/300
+  day_s/600
+  day_s/900
   
