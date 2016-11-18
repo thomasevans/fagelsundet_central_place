@@ -24,12 +24,13 @@ coast_analysis_summary.R
 *.wmf
 2016_10_24_data_site_distances.RData
 site_distances.csv
- (TomEvans-XPS13's conflicted copy 2016-10-28).RData
- 
+(TomEvans-XPS13's conflicted copy 2016-10-28).RData
 # Image files
 *.svg
 *.pdf
 *.tiff
-
 # RData files
 *.RData
+.RDataTmp
+summary_cluster_var.csv
+summary_cluster_var.xlsx
