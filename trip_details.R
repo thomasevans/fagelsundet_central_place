@@ -104,7 +104,7 @@ ggsave(filename = "ground_speed_gulls_1.pdf", width = 5, height = 4,
 # 3. Summary info for foraging trips -------
 # For each trip do following ...
 # Probably use plyr thing for speed an efficiency
-browseVignettes(package = "dplyr")
+# browseVignettes(package = "dplyr")
 
 # Unique vector of foraging trips
 trip_ids <- unique(gps.points$trip_id)
@@ -199,35 +199,6 @@ names(trips.df3)[1] <- "trip_id"
 trips.all <- merge(trips.all,trips.df3,by="trip_id")
 
 
-# 
-# trips.df3.f <- filter(trips.df3, tortoisity <1)
-# 
-# f <- gps.points$trip_id == 1102
-# f2 <- gps.points.trips.ltraj.600.df$burst == 1102
-# 
-# plot(gps.points$latitude[f]~
-#        gps.points$longitude[f])
-# points(gps.points.trips.ltraj.600.df$y[f2]~
-#          gps.points.trips.ltraj.600.df$x[f2], col = "red")
-
-# 
-# 
-# hist(trips.df$coldist_max, xlim = c(0,60000), breaks = 1000)
-# 
-# hist(trips.df$col_dist_median, xlim = c(0,60000), breaks = 1000)
-# 
-# hist(trips.df2$p_sea[trips.df2$p_sea <2], breaks = 100)
-# hist(trips.df2$p_coast[trips.df2$p_coast <2], breaks = 100)
-# hist(trips.df2$p_land[trips.df2$p_land <2], breaks = 100)
-# hist(trips.df2$p_landfill[trips.df2$p_landfill <2], breaks = 20)
-# hist(trips.df2$p_light[trips.df2$p_light <2], breaks = 20)
-# sort(trips.df2$p_light, decreasing = TRUE)
-# sort(trips.df2$p_sea)
-# 
-# 
-# x <- filter(trips.df2, p_sea >1.1)
-  
-# ?sort
 
 # 4. Add additional trip level info ---------
 # Departure times according to sunrise
@@ -304,6 +275,9 @@ trips.all$solarnoon_after_h <- x
 trips.all$time_midpoint <- trips.all$start_time + (trips.all$end_time - trips.all$start_time)/2
 
 
+# trips.all$time_midpoint[1:10]
+# trips.all$end_time[1:10]
+# trips.all$start_time[1:10]
 
 # Midpoint time relative to sunrise and sunset times (difference in hours)
 sunrise_after_h <- (as.numeric(trips.all$time_midpoint - trips.all$sunrise)/60/60)
@@ -338,19 +312,25 @@ trips.all$solarnoon_after_h_mid <- x
 
 
 
+# plot(trips.all$solarnoon_after_h_mid~trips.all$time_midpoint)
+# trips.all$time_midpoint
+# trips.all$solarnoon
+
+
 # 5. Output to DB ------
 gps.db <- odbcConnectAccess2007('D:/Dropbox/tracking_db/GPS_db.accdb')
 
 
 #export trip information to the database
 #will be neccessary to edit table in Access after to define data-types and primary keys and provide descriptions for each variable.
-sqlSave(gps.db, trips.all, tablename = "fagelsundet_gulls_all_2014_trips_info_new",
+sqlSave(gps.db, trips.all, tablename = "fagelsundet_gulls_all_2014_trips_info",
         append = FALSE,
         rownames = FALSE, colnames = FALSE, verbose = FALSE,
         safer = TRUE, addPK = FALSE,
         fast = TRUE, test = FALSE, nastring = NULL,
         varTypes = c(start_time = "Date", end_time = "Date",
-                     sunrise = "Date", sunset = "Date")
+                     sunrise = "Date", sunset = "Date",
+                     solarnoon = "Date", time_midpoint = "Date")
 )
 
 close(gps.db)
