@@ -1,5 +1,3 @@
-# Echo of PCA thing
-
 
 
 # 1. Required packages ------
@@ -8,8 +6,10 @@
 library("RODBC")
 
 # Handling data
-library("dplyr")
+# Should load plyr first to avoid conflicts with dplyr
 library(plyr)
+library("dplyr")
+
 # Plotting data
 library("ggplot2")
 library(scales)
@@ -80,7 +80,12 @@ trip.details$sunrise <-  as.POSIXct(strptime(trip.details$sunrise,
 trip.details$sunset <-  as.POSIXct(strptime(trip.details$sunset,
                                             format = "%Y-%m-%d %H:%M:%S",
                                             tz = "UTC"))
-
+trip.details$solarnoon <-  as.POSIXct(strptime(trip.details$solarnoon,
+                                             format = "%Y-%m-%d %H:%M:%S",
+                                             tz = "UTC"))
+trip.details$time_midpoint <-  as.POSIXct(strptime(trip.details$time_midpoint,
+                                            format = "%Y-%m-%d %H:%M:%S",
+                                            tz = "UTC"))
 
 
 # 3. Include data from study period only -----
@@ -97,6 +102,16 @@ e_day <- as.POSIXct("2014-07-05 12:00:00", tz = "utc")
 s_day_j <- format(s_day, "%j")
 e_day_j <- format(e_day, "%j")
 j_days_include <- c(s_day_j:e_day_j)
+
+
+# test_date_time <- seq.POSIXt(from = as.POSIXct("2015-07-12 09:00"),
+#                                    to =as.POSIXct("2015-07-12 15:00"), by =  "min",
+#                              tz = "UTC")
+# 
+# start_time <- as.POSIXct("2015-07-12 10:50", tz = "utc")
+# 
+# # Get index of first row where date_time is more than start_time
+# Position(function(x) x > start_time, test_date_time)
 
 
 # Only retain data from study period
@@ -123,6 +138,26 @@ plot(trips.sub$sunrise.prox~trips.sub$sunrise_after_h)
 trips.sub$sunset.prox <- cos((trips.sub$sunset_after_h/12)*pi)
 
 
+# Time before/ after noon
+trips.sub$solarnoon.prox <- cos((trips.sub$solarnoon_after_h/12)*pi)
+hist(trips.sub$solarnoon.prox)
+
+
+# Time before/ after sunrise
+trips.sub$sunrise.prox.mid <- cos((trips.sub$sunrise_after_h_mid/12)*pi)
+
+hist(trips.sub$sunrise.prox.mid)
+# plot(trips.sub$sunrise.prox.mid~trips.sub$sunrise_after_h)
+
+# Time before/ after sunset
+trips.sub$sunset.prox.mid <- cos((trips.sub$sunset_after_h_mid/12)*pi)
+hist(trips.sub$sunset.prox.mid)
+
+# Time before/ after noon
+trips.sub$solarnoon.prox.mid <- cos((trips.sub$solarnoon_after_h_mid/12)*pi)
+hist(trips.sub$solarnoon.prox.mid)
+
+
 
 # Transformations of proportion variables
 trips.sub$p_flight_logit <- logit(trips.sub$p_flight)
@@ -140,6 +175,14 @@ hist(trips.sub$p_coast_logit)
 trips.sub$p_landfill_logit <- logit(trips.sub$p_landfill)
 hist(trips.sub$p_landfill_logit)
 
+trips.sub$p_water_20m_logit <- logit(trips.sub$p_water_20m)
+hist(trips.sub$p_water_20m_logit)
+
+trips.sub$p_water_50m_logit <- logit(trips.sub$p_water_50m)
+hist(trips.sub$p_water_50m_logit)
+
+
+
 # Transformations of other variables
 # "coldist_max", "col_dist_median", "duration_s", "tortoisity"
 
@@ -155,12 +198,12 @@ hist(trips.sub$log_duration_s)
 trips.sub$log_tortoisity <- log(trips.sub$tortoisity-0.999)
 hist(trips.sub$log_tortoisity)
 
-# Time of day variables
-trips.sub$sunrise.prox_logit <- logit((trips.sub$sunrise.prox+1)/2)
-hist(trips.sub$sunrise.prox_logit)
-
-trips.sub$sunset.prox_logit <- logit((trips.sub$sunset.prox+1)/2)
-hist(trips.sub$sunset.prox_logit)
+# # Time of day variables
+# trips.sub$sunrise.prox_logit <- logit((trips.sub$sunrise.prox+1)/2)
+# hist(trips.sub$sunrise.prox_logit)
+# 
+# trips.sub$sunset.prox_logit <- logit((trips.sub$sunset.prox+1)/2)
+# hist(trips.sub$sunset.prox_logit)
 
 # plot(trips.sub$sunset.prox_logit~trips.sub$sunset_after_h)
 # plot(trips.sub$sunset.prox~trips.sub$sunset_after_h)
@@ -177,14 +220,35 @@ vars <- c("trip_id", "ring_number", "device_info_serial", "species",
           "log_coldist_max", "log_col_dist_median", "log_duration_s",
           "log_tortoisity", "p_flight_logit",
           "p_land_logit", "p_sea_logit", "p_coast_logit", "p_landfill_logit",
-          "sunrise.prox", "sunset.prox"
+          "p_water_50m_logit",
+          "sunrise.prox", "sunset.prox", "solarnoon.prox",
+          "sunrise.prox.mid", "sunset.prox.mid", "solarnoon.prox.mid"
+# "sunrise_after_h",
+# "sunset_after_h",
+# "solarnoon_after_h",
+# "sunrise_after_h_mid", "sunset_after_h_mid",
+# "solarnoon_after_h_mid"
 )
+
+
+# Perform analysis on data subset --------
+# Get sample of trips for each species
+trips.sp <- split(trips.sub$trip_id, trips.sub$species)
+samples <- lapply(trips.sp, function(x) sample(x, 60))
+trips.sample <- unlist(samples)
+
+
 # vars  %in% names(trips.sub)
 pca.df_incl_trip_info <- select(trips.sub, one_of(vars))
 row.names(pca.df_incl_trip_info) <- trips.sub$trip_id
 
 pca.df_only <- select(pca.df_incl_trip_info, -c(1:4))
 row.names(pca.df_only) <- trips.sub$trip_id
+
+# take sub.sets for sampled trips only
+pca.df_incl_trip_info <- dplyr::filter(pca.df_incl_trip_info, trip_id %in% trips.sample)
+
+pca.df_only <- subset(pca.df_only, rownames(pca.df_only) %in% trips.sample)
 
 
 # Inspect data (scaled)
@@ -197,7 +261,7 @@ chart.Correlation(df, histogram=TRUE, pch=19)
 
 # 7. Perform PCA etc -----
 # Compute principal component analysis
-res.pca <- PCA(pca.df_only, ncp = 4, graph=FALSE)
+res.pca <- PCA(pca.df_only, ncp = 5, graph=FALSE)
 
 # Barplot of eigenvalues to choose number of PCA dimensions
 barplot(res.pca$eig[,1], main = "Eigenvalues",
@@ -210,11 +274,12 @@ png("PCA_variables_polar_plots.png",
     width = 4, height = 12, units = "in",
     res = 300)
 
-par(mfrow=c(3,1))
+par(mfrow=c(2,2))
 # Can reduce number of variables displayed by limiting cosines
 plot(res.pca, choix = "var", axes = c(1, 2), lim.cos2.var = 0.4)
 plot(res.pca, choix = "var", axes = c(1, 3), lim.cos2.var = 0.4)
 plot(res.pca, choix = "var", axes = c(1, 4), lim.cos2.var = 0.4)
+plot(res.pca, choix = "var", axes = c(1, 5), lim.cos2.var = 0.4)
 dev.off()
 
 
@@ -240,7 +305,7 @@ get_eig(res.pca)
 
 # ?fviz_pca_var
 
-
+# str(res.pca)
 
 # Compute HCPC (hierachial clustering principle components)
 res.hcpc <- HCPC(res.pca, graph = TRUE)
@@ -277,7 +342,7 @@ x <- res.hcpc$data.clust
 res.hcpc$desc.var
 
 # See also NS variables
-df.tab <- catdes(x, num.var = 12, proba = 1)
+df.tab <- catdes(x, num.var = ncol(x), proba = 1)
 df.tab
 
 # See how clusters correspond to PCA axes
@@ -285,10 +350,10 @@ res.hcpc$desc.axes
 
 
 dat.plot <- cbind.data.frame(res.pca$ind$coord,res.hcpc$data.clust$clust )
-names(dat.plot) <- c("pc1", "pc2", "pc3", "pc4", "cluster")
+names(dat.plot) <- c("pc1", "pc2", "pc3", "pc4", "pc5", "cluster")
 
 # See also NS ones
-catdes(dat.plot, num.var = 5, proba = 1)
+catdes(dat.plot, num.var = ncol(dat.plot), proba = 1)
 
 
 # See which trips are closest to cluster centres, the 'paragon' and furtherst from any other cluster (but still within this cluster, the most specific) under 'dist'
@@ -367,7 +432,7 @@ prop.table(tab.k.sp, 2)
 
 # PC1 + PC2
 dat.plot <- cbind.data.frame(res.pca$ind$coord,res.hcpc$data.clust$clust )
-names(dat.plot) <- c("pc1", "pc2", "pc3", "pc4", "cluster")
+names(dat.plot) <- c("pc1", "pc2", "pc3", "pc4", "pc5", "cluster")
 dat.plot <- cbind.data.frame(dat.plot, pca.df_incl_trip_info[,c(1:4)])
 
 p <- ggplot()
@@ -453,46 +518,48 @@ library(cowplot)
 
 
 p <- ggpairs(dat.plot, mapping = aes(color = cluster, alpha = 0.5),
-             columns = c(1:4),
+             columns = c(1:5),
              upper=list(continuous='blank'))
 
-# ?geom_point
-# Some weird hack to include legend
-colidx <- c(1:4)
-for (i in 1:length(colidx)) {
-  
-  # Address only the diagonal elements
-  # Get plot out of plot-matrix
-  inner <- getPlot(p, i, i);
-  
-  # Add ggplot2 settings (here we remove gridlines)
-  inner <- inner + theme(panel.grid = element_blank()) +
-    theme(axis.text.x = element_blank())
-  
-  # Put it back into the plot-matrix
-  p <- putPlot(p, inner, i, i)
-  
-  for (j in 1:length(colidx)){
-    if((i==1 & j==1)){
-      
-      # Move the upper-left legend to the far right of the plot
-      inner <- getPlot(p, i, j)
-      inner <- inner + theme(legend.position=c(length(colidx)-0.25,0.50)) 
-      p <- putPlot(p, inner, i, j)
-    }
-    else{
-      
-      # Delete the other legends
-      inner <- getPlot(p, i, j)
-      inner <- inner + theme(legend.position="none")
-      p <- putPlot(p, inner, i, j)
-    }
-  }
-}
+p
+
+# # ?geom_point
+# # Some weird hack to include legend
+# colidx <- c(1:4)
+# for (i in 1:length(colidx)) {
+#   
+#   # Address only the diagonal elements
+#   # Get plot out of plot-matrix
+#   inner <- getPlot(p, i, i);
+#   
+#   # Add ggplot2 settings (here we remove gridlines)
+#   inner <- inner + theme(panel.grid = element_blank()) +
+#     theme(axis.text.x = element_blank())
+#   
+#   # Put it back into the plot-matrix
+#   p <- putPlot(p, inner, i, i)
+#   
+#   for (j in 1:length(colidx)){
+#     if((i==1 & j==1)){
+#       
+#       # Move the upper-left legend to the far right of the plot
+#       inner <- getPlot(p, i, j)
+#       inner <- inner + theme(legend.position=c(length(colidx)-0.25,0.50)) 
+#       p <- putPlot(p, inner, i, j)
+#     }
+#     else{
+#       
+#       # Delete the other legends
+#       inner <- getPlot(p, i, j)
+#       inner <- inner + theme(legend.position="none")
+#       p <- putPlot(p, inner, i, j)
+#     }
+#   }
+# }
 # ?ggsave
-ggsave(p, file = "pca_clusters.svg", width = 10, height = 10, units = "in")
-ggsave(p, file = "pca_clusters.png", width = 10, height = 10, units = "in")
-ggsave(p, file = "pca_clusters.pdf", width = 10, height = 10, units = "in")
+ggsave(p, file = "pca_clusters_newx.svg", width = 10, height = 10, units = "in")
+ggsave(p, file = "pca_clusters_newx.png", width = 10, height = 10, units = "in")
+ggsave(p, file = "pca_clusters_newx.pdf", width = 10, height = 10, units = "in")
 
 
 # ?ggpairs
@@ -500,14 +567,14 @@ ggsave(p, file = "pca_clusters.pdf", width = 10, height = 10, units = "in")
 # 9. Output details for cluster mapping -----
 # PC1 + PC2
 clust.out <- cbind.data.frame(res.pca$ind$coord,res.hcpc$data.clust$clust )
-names(clust.out) <- c("pc1", "pc2", "pc3", "pc4", "cluster")
+names(clust.out) <- c("pc1", "pc2", "pc3", "pc4", "pc5", "cluster")
 clust.out <- cbind.data.frame(clust.out, pca.df_incl_trip_info[,c(1:4)])
 
 dist <- NA
 group <- NA
 trip_id <- NA
 
-for(i in 1:30){
+for(i in 1:25){
   x <- ceiling(i/5) 
   id <- i + 5 -(x*5)
   dist[i] <- res.hcpc$desc.ind$para[[x]][id]
@@ -517,7 +584,7 @@ for(i in 1:30){
 paragons <- cbind.data.frame(group,trip_id,dist)
 
 
-for(i in 1:30){
+for(i in 1:25){
   x <- ceiling(i/5) 
   id <- i + 5 -(x*5)
   dist[i] <- res.hcpc$desc.ind$dist[[x]][id]
@@ -537,13 +604,13 @@ clust.out$distinct <- FALSE
 clust.out$distinct[clust.out$trip_id %in% distincts$trip_id] <- TRUE
 # sum(clust.out$paragon)
 
-save(clust.out, file = "clusters.RData")
+save(clust.out, file = "clusters_newx.RData")
 
 
 
 # Compare numbers of trips by cluster by species ------
 
-tab.k.sp <- table(clust.out[,c(9,5)])
+tab.k.sp <- table(clust.out[,c(10,6)])
 # 
 # Numbers
 tab.k.sp
@@ -572,7 +639,7 @@ ggplot(tab.sp.t, aes( x= cluster, group = cluster)) +
   scale_y_continuous(labels=percent) +
   labs(y = "Percent", fill="Cluser") 
 
-ggsave("cluster.prop.png", width = 7, height = 5)
+ggsave("cluster.prop.new_subset_1.png", width = 7, height = 5)
 
 
 # ?labels
@@ -613,8 +680,19 @@ fisher.test(Job, simulate.p.value = TRUE, B = 1e5)
 
 
 # Summarise variables by cluster (mean + sd) -------
-trips.sub$cluster <- x$clust
-vars <- names(trips.sub)[c(5,7,12,19:23,33,37:38,40:41,53)]
+trips.sub$cluster <- clust.out$cluster
+vars <- c("coldist_max", "col_dist_median",
+          "duration_s", "p_flight",
+          "p_sea", "p_coast",
+          "p_land", "p_landfill",
+          "tortoisity", "sunrise_after_h",
+          "sunset_after_h",
+          "solarnoon_after_h",
+          "sunrise_after_h_mid", "sunset_after_h_mid",
+          "solarnoon_after_h_mid", "cluster" )
+  
+  
+  
 trips.sub.vars <- select(trips.sub, one_of(vars))
 
 summar.tab <- trips.sub.vars %>% 
@@ -633,3 +711,512 @@ summar.tab.trans2 <- t(summar.tab)
 summar.tab.comb <- rbind.data.frame(summar.tab, summar.tab2)
 
 write.csv(summar.tab.comb, file = "summary_cluster_var.csv")
+
+
+
+
+
+
+# Bootstrapping the PCA ----------
+# For each species to have equal influence on the drived PCAs we include
+# equal numbers of foraging trips per species
+# To make this robust, we resample many times and re-run the PCA
+
+
+
+
+
+
+
+# summary(sample.trips)
+pca.scores.list <- list()
+pca.eigens.list <- list()
+
+# Run PCA lots of times
+# for(run_num in c(1:1000)){
+
+for(run_num in c(1:1000)){
+    
+  
+  # Take a subset of data
+  samples <- lapply(trips.sp, function(x) sample(x, 60, replace = FALSE))
+  trips.sample <- unlist(samples)
+  # ?sample
+  
+  sample.trips <- pca.df_incl_trip_info$trip_id %in% trips.sample
+  sup.inds <- c(1:nrow(pca.df_only))[!sample.trips]
+  
+  # Compute principal component analysis
+  res.pca <- PCA(pca.df_only, ncp = 10,
+                 ind.sup = sup.inds,
+                 graph=FALSE)
+  
+  # Make dataframe of PC scores
+  pca.score.df <- rbind.data.frame(res.pca$ind$coord,
+                                   res.pca$ind.sup$coord)
+  pca.score.df <- cbind.data.frame(pca.score.df, c(row.names(res.pca$ind$coord),
+                                                   row.names(res.pca$ind.sup$coord)))
+  names(pca.score.df)[11] <- "trip_id"
+  
+    # Sort df
+  pca.score.df <- pca.score.df[order(as.numeric(as.character(pca.score.df$trip_id))),]
+  pca.score.df$run <- run_num
+  
+  # Get eigen values of PCs
+  eigens <- get_eig(res.pca)
+  # Keep first 10 PCAs only
+  eigens <- eigens[c(1:10),]
+  eigens$run <- run_num
+  eigens$pca <- row.names(eigens)
+  
+  
+  # Add these to lists:
+  pca.scores.list[[run_num]] <- pca.score.df
+  pca.eigens.list[[run_num]] <- eigens
+  
+}
+
+pca.eigens.df <- do.call(rbind.data.frame, pca.eigens.list)
+
+pca.scores.df <- do.call(rbind.data.frame, pca.scores.list)
+
+
+# plot density plot thing for eigenvalues
+theme_new <- theme_bw(base_size = 14, base_family = "serif") +
+  theme(legend.position = "right",
+        legend.justification = c(1, 1),
+        legend.key.size =   unit(1, "lines"),
+        legend.key = element_rect(colour =NA),
+        legend.text = element_text(size = 12, face = "italic"),
+        axis.text = element_text(size = 14),
+        axis.title = element_text(size = 14),
+        legend.text.align = 0,
+        # legend.text = element_text(colour="blue", size = 16, face = "bold")
+        legend.key.width = unit(1.5, "lines")
+  )
+
+# str(pca.eigens.df)
+library(reshape2)
+plot.eig.df <- melt(pca.eigens.df, "pca", "eigenvalue")
+str(plot.eig.df)
+plot.eig.df$pca <- factor(plot.eig.df$pca, levels = unique(plot.eig.df$pca),
+                          labels = c(1:10))
+ggplot(plot.eig.df, aes(value, colour = pca)) +
+  geom_density(adjust = 1/2, lwd = 0.5, alpha = 0.7)+
+  geom_vline(xintercept = 1, lwd = 1, lty = 2,
+             col = "black") +
+  theme_new +
+  labs(list(x = "Eigen value",
+            y = "Density",
+            colour = "PCA")) 
+
+ggsave(filename = "pca_eigen_density.svg", width = 4, height = 4,
+       units = "in")
+ggsave(filename = "pca_eigen_density.png", width = 4, height = 4,
+       units = "in")
+ggsave(filename = "pca_eigen_density.pdf", width = 4, height = 4,
+       units = "in")
+
+str(pca.eigens.df)
+pca.eigens.df$pca <- factor(pca.eigens.df$pca, levels = unique(pca.eigens.df$pca),
+                          labels = c(1:10))
+eig.summary.df <- summarise(group_by(pca.eigens.df,
+                   pca),
+          eigen_mean = mean(eigenvalue),
+          eigen_median = median(eigenvalue),
+          eigen_sd = sd(eigenvalue),
+          var_per_mean = mean(variance.percent),
+          var_per_median = median(variance.percent),
+          var_per_sd = sd(variance.percent),
+          cum_per_mean = mean(cumulative.variance.percent),
+          cum_per_median = median(cumulative.variance.percent),
+          cum_per_sd = sd(cumulative.variance.percent)
+)
+write.csv(eig.summary.df, file = "pca_eigen_summary.csv")
+
+
+str(pca.scores.df)
+# Get mean PCA components
+pca.scores.mean.df <- summarise(group_by(pca.scores.df,
+                                     trip_id),
+                           pc1 = mean(Dim.1),
+                           pc2 = mean(Dim.2),
+                           pc3 = mean(Dim.3),
+                           pc4 = mean(Dim.4),
+                           pc5 = mean(Dim.5),
+                           pc6 = mean(Dim.6),
+                           pc7 = mean(Dim.7),
+                           pc8 = mean(Dim.8),
+                           pc9 = mean(Dim.9),
+                           pc10 = mean(Dim.10)
+)
+
+# Combine with details columns
+pca.table <- merge(pca.scores.mean.df,
+                   trips.sub[,c(1:4)],
+                   by = "trip_id")
+write.csv(pca.table, file = "pca.table.csv")
+
+save(list(pca.table,eig.summary.df,
+          pca.scores.list, pca.eigens.list))
+
+# Bootstrapping the clustering ------
+pca.table <- read.csv(file="pca.table.csv", row.names = NULL)
+pca.table <- pca.table[,c(2:ncol(pca.table))]
+
+# split trips between species
+trips.sp <- split(trips.sub$trip_id, trips.sub$species)
+
+nclust <- list()
+inertia.gain <- list()
+interia.gain.change <- list()
+
+for(i in 1:10000){
+  
+  # Take a subset of data
+  samples <- lapply(trips.sp, function(x) sample(x, 50, replace = TRUE))
+  trips.sample <- unlist(samples)
+  # ?sample
+  
+#   idx <- c(1:nrow(pca.table))
+#   sample.trips <- vapply()
+#     idx[ pca.table$trip_id == trips.sample]
+#   # sup.inds <- c(1:nrow(pca.df_only))[!sample.trips]
+
+  # Find rows with these trips  
+  trip.row <- sapply(trips.sample ,function(x){which(pca.table$trip_id == x)})
+
+#   # Check we've got what we think we've got!
+#   all(trips.sample %in% pca.table[trip.row,1])
+#   # Yes!
+  
+  # Run clustering algorithm
+  res.hcpc <- HCPC(pca.table[trip.row, c(2:6)], nb.clust = -1,
+                   min = 5, max = 20,
+                   graph = FALSE)
+  # ?HCPC
+  # str(res.hcpc)
+  
+  q1 <- res.hcpc$call$t$inert.gain[c(1:18)]-res.hcpc$call$t$inert.gain[c(2:19)]
+  q2 <- res.hcpc$call$t$inert.gain[c(2:19)]-res.hcpc$call$t$inert.gain[c(3:20)]
+  q_change <- (q1-q2)/res.hcpc$call$t$inert.gain[c(2:19)]
+#  
+#    par(mfrow=c(3,1))
+#   plot(res.hcpc, draw.tree = TRUE,choice = "bar")
+#   plot(res.hcpc$call$t$inert.gain[1:20])
+#   plot(q_change~c(2:19))
+  
+#   # where(sort(q_change)
+#   q1[6]/q2[6]
+#   q1[7]/q2[7]
+#   
+  q_order <- rev(sort(q_change))
+  top_1 <- which(q_change == q_order[1]) + 1
+  top_2 <- which(q_change == q_order[2]) + 1
+  
+  if(top_1 >3) top_clust <- top_1 else{
+    top_clust <- top_2
+  }
+  
+  # Optimal number of clusters
+  nclust[[i]] <- c(top_1, top_2, top_clust)
+  inertia.gain[[i]] <- res.hcpc$call$t$inert.gain[1:20]
+  interia.gain.change[[i]] <- q_change
+  
+}
+
+nclust.df <- do.call(rbind.data.frame, nclust)
+names(nclust.df) <- c("top_1", "top_2", "top_over_3")
+
+hist(nclust.df$top_over_3, breaks = 100)
+median(nclust.df$top_over_3)
+abline(v= median(nclust.df$top_over_3))
+abline(v= mean(nclust.df$top_over_3), col="red")
+
+
+sorted_top_over_3 <- sort(nclust.df$top_over_3)
+df.loess <- cbind.data.frame(sorted_top_over_3,c(1:10000))
+names(df.loess) <- c("clust_n", "ob_n")
+loess.line <- loess(clust_n~ob_n, df.loess,span = 0.25)
+z <- predict(loess.line, df.loess, se=TRUE)
+df.loess$loess_predict <- z$fit
+
+# ?loess
+# 95% CI for true number of clusters
+plot(sorted_top_over_3)
+abline(v=c(250,2500, 5000, 7500, 9750))
+abline(loess.line, col = "red")
+points(df.loess$loess_predict~df.loess$ob_n, col = "red", type = "l")
+
+median(sorted_top_over_3)
+sorted_top_over_3[250]
+# .025*10000
+sorted_top_over_3[10000-250]
+# 7 [4, 14]
+
+
+# 50% interval
+sorted_top_over_3[2500]
+# .025*10000
+sorted_top_over_3[7500]
+# 7 [5, 9]
+
+inertia.gain.df <- do.call(rbind.data.frame, inertia.gain)
+names(inertia.gain.df) <- c(1:20)
+
+inertia.gain.df.melt <- melt(inertia.gain.df,measure.vars = c(1:20))
+
+interia.gain.change.df <- do.call(rbind.data.frame, interia.gain.change)
+names(interia.gain.change.df) <- c(2:19)
+
+interia.gain.change.df.melt <- melt(interia.gain.change.df,measure.vars = c(1:18))
+
+colMeans(interia.gain.change.df)
+# hist(interia.gain.change.df[,7], breaks = 50)
+
+
+boxplot(interia.gain.change.df.melt$value~interia.gain.change.df.melt$variable,
+        ylim = c(-0.5,0.5))
+# ?boxplot
+
+
+# See how inertia gain looks
+boxplot(inertia.gain.df.melt$value~inertia.gain.df.melt$variable)
+
+
+
+# Get cluster centroids -------
+# Run as above many times contrained to 7 clusters
+# Get means of centroid centres and PCA weights/ loadings etc...
+
+
+
+# split trips between species
+trips.sp <- split(trips.sub$trip_id, trips.sub$species)
+
+# To run adapted NbClust function
+source("NbClust_new_d_index_only.R")
+
+nclus3 <- NULL
+nclus4 <- NULL
+nclus5 <- NULL
+
+inertias <- list()
+
+for(i in 1:10000){
+  
+  # Take a subset of data
+  samples <- lapply(trips.sp, function(x) sample(x, 50, replace = TRUE))
+  trips.sample <- unlist(samples)
+ 
+  # Find rows with these trips  
+  trip.row <- sapply(trips.sample ,function(x){which(pca.table$trip_id == x)})
+  
+  #   # Check we've got what we think we've got!
+  #   all(trips.sample %in% pca.table[trip.row,1])
+  #   # Yes!
+#   
+#   # Run clustering algorithm
+#   res.hcpc <- HCPC(pca.table[trip.row, c(2:6)], nb.clust = 7,
+#                    min = 5, max = 20,
+#                    graph = TRUE)
+#   
+#   # Perform heirachial clustering on PCA scores
+#   clusters <- hclust(dist(pca.table[trip.row, c(2:6)]),
+#                      method = "ward.D2")
+#   
+#   # ?hclust
+#   plot(clusters, hang = -5)
+#   
+  
+  
+  # Find optimal number of clusters using NbClust package
+#   install.packages(c("NbClust"))
+#   library(NbClust)
+#   x <- NbClust(pca.table[trip.row, c(2:6)], distance = "euclidean",
+#                method = "ward.D2", index = "frey", alphaBeale = 0.05,
+#                min.nc = 3, max.nc = 20)
+#   plot(x$All.index~c(3:20))
+#   x$Best.nc
+# NbClust  
+
+#   res<-NbClust(pca.table[trip.row, c(2:6)], distance = "euclidean", min.nc=2, max.nc=20, 
+#                method = "complete", index = "dindex")
+#   
+#   
+  # need to source NbClust_new_d_index_only
+  res <- NbClust_new(pca.table[trip.row, c(2:6)], distance = "euclidean", min.nc=2, max.nc=20, 
+          method = "ward.D2", index = "dindex")
+  # str(res)
+  # If use d-index (inertia gain thing), need to implement some function to store the optimal number of clusters
+  
+  # Inertia plot
+#       plot(c(2:20), res[[1]], tck = 0, type = "b", col = "red", 
+#            xlab = expression(paste("Number of clusters ")), 
+#            ylab = expression(paste("Dindex Values")))
+  
+  
+#   plot(res[[2]], type ="b")
+#   
+  
+  #inertia values (2-20 clusters)
+  inertias[[i]] <- res[[1]]
+  
+  # Optimal cluster
+
+  # Best more than 2 (3 or greater)
+  nclus3[i] <- which.max(res[[2]][3:20])  + 2
+  
+  
+  # Best more than 3 (4 or greater)
+  nclus4[i] <- which.max(res[[2]][4:20])  + 3
+  
+  # Best more than 4 (5 or greater)
+  nclus5[i] <- which.max(res[[2]][5:20])  + 4
+  
+  # res$All.index
+  # nclus[i] <- res$Best.nc[1]
+#   res$Best.partition
+#   
+#   
+#   # ?NbClust
+#   plot(res$All.index~c(3:20))
+#   
+#   # ?dist
+#   str(clusters)
+# 
+#   res.dist <- get_dist((pca.table[trip.row, c(2:6)]), stand = TRUE, method = "pearson")
+#   
+#   fviz_dist(res.dist, 
+#             gradient = list(low = "#00AFBB", mid = "white", high = "#FC4E07"))
+#   
+#   
+#   res.hcpc$desc.axes
+#   
+#   # Get centroid-centres
+#   res.hcpc$call$t
+#   
+#   # ?HCPC
+#   str(res.hcpc)
+ 
+  
+}
+
+# nclus3
+# nclus4
+# min == 4
+hist(nclus4, breaks = 100)
+hist(nclus3, breaks = 100)
+hist(nclus5, breaks = 100)
+
+mean(nclus4)
+median(nclus4)
+median(nclus5)
+mean(nclus5)
+
+inertia.gain.df <- do.call(rbind.data.frame, inertias)
+names(inertia.gain.df) <- c(2:20)
+
+# library(reshape2)
+interia.gain.change.df.melt <- melt(inertia.gain.df,measure.vars = c(1:19))
+
+boxplot(interia.gain.change.df.melt$value~interia.gain.change.df.melt$variable)
+
+# Median, 95% CI and 50% CI
+sort(nclus5)[c(250,2500, 5000, 7500, 9750)]
+
+sort(nclus3)[c(250,2500, 5000, 7500, 9750)]
+
+
+
+
+# Apply to all data ------
+# Use k-means approach based on cluster centres + record distances
+# See code below (end of file)
+#
+
+
+
+
+
+# 
+# 
+# q1 <- inertia.gain.df[,c(1:18)]-inertia.gain.df[,c(2:19)]
+# q2 <- inertia.gain.df[,c(2:19)]-inertia.gain.df[,c(3:20)]
+# q_change <- q1/q2
+# inertia.gain.chang.df.melt <- melt(q_change,measure.vars = c(1:18))
+# boxplot(inertia.gain.chang.df.melt$value~inertia.gain.chang.df.melt$variable,
+#         ylim = c(0,10))
+# 
+# # Do a nice plot with medians + 95% CI (bootstraped - i.e. 95% quartile range)
+# 
+# quantile(q_change[,5], c(0.05,0.5,0.95))
+# 
+# 
+# 
+# # ?melt
+# 
+# median(nclust)
+# hist(nclust, breaks = 100)
+# 
+# sum(nclust > 6)/length(nclust)
+# 
+# 
+# nclus.min2 <- nclust
+# 
+# nclus.min3 <- nclust
+# 
+# nclust.min4 <- nclust
+# hist(nclust.min4)
+# 
+# # See what clusters each trip belongs to along with variables
+# x <- res.hcpc$data.clust
+# 
+# 
+# # See what variables are important to different clusters and what defines clusters
+# res.hcpc$desc.var
+# 
+# 
+# # See also NS variables
+# df.tab <- catdes(x, num.var = ncol(x), proba = 1)
+# df.tab
+# 
+# 
+# # See how clusters correspond to PCA axes
+# res.hcpc$desc.axes
+# 
+# 
+# # See which trips are closest to cluster centres, the 'paragon' and furtherst from any other cluster (but still within this cluster, the most specific) under 'dist'
+# res.hcpc$desc.ind
+
+
+
+
+
+
+# Allocating clusters from cluster centroids (minimising euclidian distance)
+# create a simple data set with two clusters
+set.seed(1)
+x <- rbind(matrix(rnorm(100, sd = 0.3), ncol = 2),
+           matrix(rnorm(100, mean = 1, sd = 0.3), ncol = 2))
+colnames(x) <- c("x", "y")
+x_new <- rbind(matrix(rnorm(10, sd = 0.3), ncol = 2),
+               matrix(rnorm(10, mean = 1, sd = 0.3), ncol = 2))
+colnames(x_new) <- c("x", "y")
+
+cl <- kmeans(x, centers=2)
+
+
+
+
+clusters <- function(x, centers) {
+  # compute squared euclidean distance from each sample to each cluster center
+  tmp <- sapply(seq_len(nrow(x)),
+                function(i) apply(centers, 1,
+                                  function(v) sum((x[i, ]-v)^2)))
+  clust <- max.col(-t(tmp))  # find index of min distance
+  return(c(clust, max(tmp)))
+}
+
+clusters()
+clusters(cbind.data.frame(0,0), cl[["centers"]])

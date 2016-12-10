@@ -19,10 +19,9 @@ gps.db <- odbcConnectAccess2007('D:/Dropbox/tracking_db/GPS_db.accdb')
 # Get data
 gps.points <- sqlQuery(gps.db,
                        query =
-                         "SELECT fagelsundet_gulls_all_2014_gps_points.device_info_serial, fagelsundet_gulls_all_2014_gps_points.date_time, fagelsundet_gulls_all_2014_gps_points.latitude, fagelsundet_gulls_all_2014_gps_points.longitude, fagelsundet_gulls_all_2014_gps_points.speed_3d, fagelsundet_gulls_all_2014_gps_points.speed, fagelsundet_gulls_all_2014_gps_trip_id_par.trip_id, fagelsundet_gulls_all_2014_gps_trip_id_par.time_interval, fagelsundet_gulls_all_2014_gps_trip_id_par.area_class, fagelsundet_gulls_all_2014_gps_coastdist.coast_dist, fagelsundet_gulls_all_2014_gps_coastdist.on_land, fagelsundet_gulls_all_2014_gps_coastdist.coast_dist_sign, fagelsundet_gulls_all_2014_gps_coldist.col_dist, fagelsundet_gulls_all_2014_gps_coldist.trip_1km, fagelsundet_gulls_all_2014_gps_sitedist.landfill_dist_min, fagelsundet_gulls_all_2014_gps_sitedist.light_dist_min, fagelsundet_gulls_all_2014_gps_sitedist.landfill_closest, fagelsundet_gulls_all_2014_gps_sitedist.light_closest
-FROM (((fagelsundet_gulls_all_2014_gps_points INNER JOIN fagelsundet_gulls_all_2014_gps_trip_id_par ON (fagelsundet_gulls_all_2014_gps_points.date_time = fagelsundet_gulls_all_2014_gps_trip_id_par.date_time) AND (fagelsundet_gulls_all_2014_gps_points.device_info_serial = fagelsundet_gulls_all_2014_gps_trip_id_par.device_info_serial)) INNER JOIN fagelsundet_gulls_all_2014_gps_coastdist ON (fagelsundet_gulls_all_2014_gps_points.date_time = fagelsundet_gulls_all_2014_gps_coastdist.date_time) AND (fagelsundet_gulls_all_2014_gps_points.device_info_serial = fagelsundet_gulls_all_2014_gps_coastdist.device_info_serial)) INNER JOIN fagelsundet_gulls_all_2014_gps_sitedist ON (fagelsundet_gulls_all_2014_gps_points.date_time = fagelsundet_gulls_all_2014_gps_sitedist.date_time) AND (fagelsundet_gulls_all_2014_gps_points.device_info_serial = fagelsundet_gulls_all_2014_gps_sitedist.device_info_serial)) INNER JOIN fagelsundet_gulls_all_2014_gps_coldist ON (fagelsundet_gulls_all_2014_gps_points.date_time = fagelsundet_gulls_all_2014_gps_coldist.date_time) AND (fagelsundet_gulls_all_2014_gps_points.device_info_serial = fagelsundet_gulls_all_2014_gps_coldist.device_info_serial)
+                         "SELECT fagelsundet_gulls_all_2014_gps_points.device_info_serial, fagelsundet_gulls_all_2014_gps_points.date_time, fagelsundet_gulls_all_2014_gps_points.latitude, fagelsundet_gulls_all_2014_gps_points.longitude, fagelsundet_gulls_all_2014_gps_points.speed_3d, fagelsundet_gulls_all_2014_gps_points.speed, fagelsundet_gulls_all_2014_gps_trip_id_par.trip_id, fagelsundet_gulls_all_2014_gps_trip_id_par.time_interval, fagelsundet_gulls_all_2014_gps_trip_id_par.area_class, fagelsundet_gulls_all_2014_gps_coastdist.coast_dist, fagelsundet_gulls_all_2014_gps_coastdist.on_land, fagelsundet_gulls_all_2014_gps_coastdist.coast_dist_sign, fagelsundet_gulls_all_2014_gps_coldist.col_dist, fagelsundet_gulls_all_2014_gps_coldist.trip_1km, fagelsundet_gulls_all_2014_gps_sitedist.landfill_dist_min, fagelsundet_gulls_all_2014_gps_sitedist.light_dist_min, fagelsundet_gulls_all_2014_gps_sitedist.landfill_closest, fagelsundet_gulls_all_2014_gps_sitedist.light_closest, fagelsundet_gulls_all_2014_gps_inland_water.allwater50, fagelsundet_gulls_all_2014_gps_inland_water.allwater20, fagelsundet_gulls_all_2014_gps_inland_water.polywater50, fagelsundet_gulls_all_2014_gps_inland_water.polywater20
+FROM ((((fagelsundet_gulls_all_2014_gps_points INNER JOIN fagelsundet_gulls_all_2014_gps_trip_id_par ON (fagelsundet_gulls_all_2014_gps_points.device_info_serial = fagelsundet_gulls_all_2014_gps_trip_id_par.device_info_serial) AND (fagelsundet_gulls_all_2014_gps_points.date_time = fagelsundet_gulls_all_2014_gps_trip_id_par.date_time)) INNER JOIN fagelsundet_gulls_all_2014_gps_coastdist ON (fagelsundet_gulls_all_2014_gps_points.device_info_serial = fagelsundet_gulls_all_2014_gps_coastdist.device_info_serial) AND (fagelsundet_gulls_all_2014_gps_points.date_time = fagelsundet_gulls_all_2014_gps_coastdist.date_time)) INNER JOIN fagelsundet_gulls_all_2014_gps_sitedist ON (fagelsundet_gulls_all_2014_gps_points.device_info_serial = fagelsundet_gulls_all_2014_gps_sitedist.device_info_serial) AND (fagelsundet_gulls_all_2014_gps_points.date_time = fagelsundet_gulls_all_2014_gps_sitedist.date_time)) INNER JOIN fagelsundet_gulls_all_2014_gps_coldist ON (fagelsundet_gulls_all_2014_gps_points.device_info_serial = fagelsundet_gulls_all_2014_gps_coldist.device_info_serial) AND (fagelsundet_gulls_all_2014_gps_points.date_time = fagelsundet_gulls_all_2014_gps_coldist.date_time)) INNER JOIN fagelsundet_gulls_all_2014_gps_inland_water ON (fagelsundet_gulls_all_2014_gps_coldist.date_time = fagelsundet_gulls_all_2014_gps_inland_water.date_time) AND (fagelsundet_gulls_all_2014_gps_coldist.device_info_serial = fagelsundet_gulls_all_2014_gps_inland_water.device_info_serial)
                        ORDER BY fagelsundet_gulls_all_2014_gps_points.device_info_serial, fagelsundet_gulls_all_2014_gps_points.date_time;
-                       
                        "
                        ,as.is = TRUE)
 
@@ -58,6 +57,17 @@ gps.points <- merge(gps.points,
 
 # Drop caspian terns
 gps.points <- filter(gps.points, species_latin_name !=  "Hydroprogne caspia")
+
+
+str(gps.points)
+gps.points$allwater50 <- as.logical(gps.points$allwater50)
+gps.points$allwater20 <- as.logical(gps.points$allwater20)
+gps.points$polywater50 <- as.logical(gps.points$polywater50)
+gps.points$polywater20 <- as.logical(gps.points$polywater20)
+
+gps.points$on_land <- as.logical(gps.points$on_land)
+
+gps.points$trip_1km <- as.logical(gps.points$trip_1km)
 
 
 
@@ -140,7 +150,7 @@ trips.df <- summarise(group_by(filter(gps.points, trip_id !=  0),
                       
                       )
 
-
+# summary(gps.points$polywater20)
 
 # perform calculations excluding first record of foraging trip
 # First record will often have longer time interval (if have set
@@ -160,7 +170,10 @@ trips.df2 <- summarise(group_by(filter(gps.points, trip_id !=  0),
                       p_land = sum(time_interval[area_class == "Land"], na.rm = TRUE)/duration_s_sum,
                       p_landfill = sum(time_interval[landfill_dist_min <0.5], na.rm = TRUE)/duration_s_sum,
                       p_light = sum(time_interval[light_dist_min <0.05], na.rm = TRUE)/duration_s_sum,
-                      
+                      p_water_20m = sum(time_interval[allwater20], na.rm = TRUE)/duration_s_sum,
+                      p_water_50m = sum(time_interval[allwater50], na.rm = TRUE)/duration_s_sum,
+                      p_water_poly_20m = sum(time_interval[polywater20], na.rm = TRUE)/duration_s_sum,
+                      p_water_poly_50m = sum(time_interval[polywater50], na.rm = TRUE)/duration_s_sum,
                       n_points2 = n(),
                       
                       # Quality criteria
@@ -174,8 +187,11 @@ trips.df2 <- summarise(group_by(filter(gps.points, trip_id !=  0),
 trips.all <- merge(trips.df,trips.df2,by="trip_id")
 
 
-
-
+# hist(trips.all$p_water_20m)
+# hist(trips.all$p_water_50m)
+# 
+# hist(trips.all$p_water_poly_20m)
+# hist(trips.all$p_water_poly_50m)
 
 
 # perform calculations on regular time interval data
@@ -193,7 +209,7 @@ trips.df3 <- summarise(group_by(filter(gps.points.trips.ltraj.600.df, burst !=  
                        
 )
 
-hist(trips.df3$tortoisity, breaks = 1000, xlim = c(0,6))
+# hist(trips.df3$tortoisity, breaks = 1000, xlim = c(0,6))
 
 names(trips.df3)[1] <- "trip_id"
 trips.all <- merge(trips.all,trips.df3,by="trip_id")
@@ -337,3 +353,6 @@ close(gps.db)
 
 
 
+# hist(trips.all$p_water_50m)
+# 
+# str(trips.all$p_water_50m)

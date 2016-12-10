@@ -70,7 +70,11 @@ load("openstreetmap_coast_polygon.RData")
 
 
 # Cluster data
-load("clusters.RData")
+load("clusters_newx.RData")
+
+# Waterways data
+# Load same data
+load("waterways.Rdata")
 
 # GPS point data
 # Connect to DB
@@ -183,6 +187,15 @@ map.base.fun <- function(xlim = c(17,18.3), ylim =  c(57,57.7),
        main = title.text,
        lty = 0)
  
+  plot(water.lines,
+       add = TRUE, col="light blue" )
+  plot(water.lines2,
+       add = TRUE, col="light blue" )
+  plot(water.polygons,
+       add = TRUE, col="light blue", border = NA)
+  plot(water.polygons2,
+       add = TRUE, col="light blue", border = NA)
+  
   axis(side=(1),las=1)
   axis(side=(2),las=1)
    
@@ -232,7 +245,7 @@ specs <- sort(unique(clust.out$species))
 par(mfrow=c(1,1))
 # par(mfrow=c(2,3))
 
-
+unique(clust.out$cluster)
 # Plot base map
 map.base.fun(xlim = range(gps.points$longitude),
              ylim = range(gps.points$latitude),
@@ -240,6 +253,9 @@ map.base.fun(xlim = range(gps.points$longitude),
 # 
 # for(i in 1:4){
 #   
+
+plot(water.lines, col="blue", add = TRUE)
+plot(water.polygons, add=TRUE, col = "blue")
   
 
 # clust.num <- i
@@ -314,4 +330,107 @@ map.scale2(ratio = FALSE, lwd.line = 2,
 
 
 dev.off()
+
+
+
+
+# Plot sepperate panels for each cluster -----
+
+clusts <- sort(unique(clust.out$cluster))
+
+
+
+svg("cluster_maps_grid_detailed_newx.svg", width = 12, height = 12)
+
+
+# par(mfrow=c(1,1))
+par(mfrow=c(3,3))
+
+# Plot base map
+# i <- 1
+# 
+for(i in 1:length(clusts)){
+#   
+
+
+# clust.num <- i
+cluster.trips <- clust.out$trip_id[clust.out$cluster == clusts[i]]
+points.f <- dplyr::filter(gps.points, trip_id %in% cluster.trips)
+
+map.base.fun(xlim = range(points.f$longitude),
+             ylim = range(points.f$latitude),
+             title.text = paste("cluster: ", clusts[i]))
+
+
+
+# Map each trip in turn
+ix <- 1
+for(ix in 1:length(cluster.trips)){
+  # cluster.trips[i] %in% gps.points.ltraj.300.df$trip_id
+  
+  gps.sub <- filter(points.f, trip_id == cluster.trips[ix])
+  
+  # sp.col <- addalpha(col.outs[specs == clust.out$species[ix]
+                              # ], alpha = 0.15)
+  
+  # x <- cluster.trips[i]
+  # ?subset
+  # ?filter
+  n <- length(gps.sub$long)
+  segments(gps.sub$long[-1], gps.sub$lat[-1],
+           gps.sub$long[1:n-1], gps.sub$lat[1:n-1],
+           col = addalpha("black", 0.5), lty = 1, lwd = 0.4)
+           # col = sp.col, lty = 1, lwd = 1)
+  
+
+
+}
+
+
+
+# Add colony location
+points(17.93, 60.63, pch = 21,
+       col = "#7570b3", bg = addalpha("#7570b3", alpha = 0.5),
+       cex = 2)
+
+
+# Add landfill locations
+lat <- c( 60.686575,  60.639238,  60.611447,
+          60.290733,  59.920735,  59.929981,
+          59.550136,  59.172017)
+long <- c( 17.155740,  16.879813,  15.574975,
+           17.574914,  16.722996,  17.770531,
+           17.615439,  17.989668)
+points(long, lat, pch = 23,
+       col = "#7570b3", bg = addalpha("#7570b3", alpha = 0.4),
+       cex = 2)
+
+# Add map scale bar
+map.scale2(ratio = FALSE, lwd.line = 2,
+           relwidth = 0.25, cex = 1.2)
+
+}
+
+dev.off()
+
+# # ?legend
+# legend(x = "topleft",
+#        legend = c("Colony",
+#                   "Landfill",
+#                   "L. argentatus/ HG",
+#                   "L. canutus/ CG",
+#                   "L. fuscus/ LBBG",
+#                   "L. marinus/ GBBG"),
+#        col = c("#7570b3", "#7570b3",
+#                col.outs),
+#        pt.bg = c(addalpha("#7570b3", alpha = 0.4), addalpha("#7570b3", alpha = 0.4),
+#                  NA, NA, NA, NA),
+#        lwd = c(1, 1, 3, 3, 3, 3),
+#        lty = c(NA, NA, 1, 1, 1, 1),
+#        pch = c(21, 23, NA, NA, NA, NA),
+#        pt.cex = 2,
+#        bty = "n",
+#        cex = 1.3)
+
+
 

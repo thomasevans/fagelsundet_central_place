@@ -25,6 +25,8 @@ gps.points <- sqlQuery(gps.db,
 
 str(gps.points)
 
+# plot(gps.points$latitude~gps.points$longitude)
+
 # Get ring numbers as factor
 gps.points$ring_number <- as.factor(gps.points$ring_number)
 
