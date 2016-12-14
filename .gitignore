@@ -39,3 +39,4 @@ export.geojson
 natural_water.geojson
 pca.table.csv
 pca_eigen_summary.csv
+cluster_data.csv
