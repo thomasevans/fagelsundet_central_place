@@ -302,6 +302,9 @@ pca.eigens.df <- do.call(rbind.data.frame, pca.eigens.list)
 
 pca.scores.df <- do.call(rbind.data.frame, pca.scores.list)
 
+hist(pca.eigens.df$cumulative.variance.percent[pca.eigens.df$pca == 5])
+mean(pca.eigens.df$cumulative.variance.percent[pca.eigens.df$pca == 5], na.rm = TRUE)
+sort(pca.eigens.df$cumulative.variance.percent[pca.eigens.df$pca == 5])[c(50,500,950)]
 
 # plot density plot thing for eigenvalues
 theme_new <- theme_bw(base_size = 14, base_family = "serif") +
@@ -399,128 +402,6 @@ write.csv(pca.table, file = "pca.table.csv")
 # 
 colMeans(pca.scores.mean.df[c(2:21)])
 
-# 
-# 
-# # Bootstrapping the clustering ------
-# # pca.table <- read.csv(file="pca.table.csv", row.names = NULL)
-# # pca.table <- pca.table[,c(2:ncol(pca.table))]
-# 
-# # split trips between species
-# trips.sp <- split(trips.sub$trip_id, trips.sub$species)
-# summary(trips.sp)
-# 
-# nclust <- list()
-# inertia.gain <- list()
-# interia.gain.change <- list()
-# i <- 1
-# for(i in 1:10){
-#   
-#   # Take a subset of data
-#   samples <- lapply(trips.sp, function(x) sample(x, 87, replace = TRUE))
-#   trips.sample <- unlist(samples)
-#   
-# 
-#   # Find rows with these trips  
-#   trip.row <- sapply(trips.sample ,function(x){which(pca.table$trip_id == x)})
-# 
-#   # Run clustering algorithm
-#   res.hcpc <- HCPC(pca.table[trip.row, c(2:6)], nb.clust = -1,
-#                    min = 5, max = 20,
-#                    graph = FALSE)
-# # str(res.pca)
-# #   ?HCPC
-#   
-#   q1 <- res.hcpc$call$t$inert.gain[c(1:18)]-res.hcpc$call$t$inert.gain[c(2:19)]
-#   q2 <- res.hcpc$call$t$inert.gain[c(2:19)]-res.hcpc$call$t$inert.gain[c(3:20)]
-#   q_change <- (q1-q2)/res.hcpc$call$t$inert.gain[c(2:19)]
-# 
-#   
-#   q_order <- rev(sort(q_change))
-#   top_1 <- which(q_change == q_order[1]) + 1
-#   top_2 <- which(q_change == q_order[2]) + 1
-#   
-#   if(top_1 >3) top_clust <- top_1 else{
-#     top_clust <- top_2
-#   }
-#   
-#   # Optimal number of clusters
-#   nclust[[i]] <- c(top_1, top_2, top_clust)
-#   inertia.gain[[i]] <- res.hcpc$call$t$inert.gain[1:20]
-#   interia.gain.change[[i]] <- q_change
-#   
-# }
-# 
-# nclust.df <- do.call(rbind.data.frame, nclust)
-# names(nclust.df) <- c("top_1", "top_2", "top_over_3")
-# 
-# hist(nclust.df$top_over_3, breaks = 100)
-# median(nclust.df$top_over_3)
-# abline(v= median(nclust.df$top_over_3))
-# abline(v= mean(nclust.df$top_over_3), col="red")
-# 
-# hist(nclust.df$top_1, breaks = 100)
-# median(nclust.df$top_1)
-# 
-# sorted_top_over_3 <- sort(nclust.df$top_over_3)
-# df.loess <- cbind.data.frame(sorted_top_over_3,c(1:10000))
-# names(df.loess) <- c("clust_n", "ob_n")
-# loess.line <- loess(clust_n~ob_n, df.loess,span = 0.25)
-# z <- predict(loess.line, df.loess, se=TRUE)
-# df.loess$loess_predict <- z$fit
-# 
-# # ?loess
-# # 95% CI for true number of clusters
-# plot(sorted_top_over_3)
-# abline(v=c(250,2500, 5000, 7500, 9750))
-# abline(loess.line, col = "red")
-# points(df.loess$loess_predict~df.loess$ob_n, col = "red", type = "l")
-# 
-# median(sorted_top_over_3)
-# sorted_top_over_3[250]
-# # .025*10000
-# sorted_top_over_3[10000-250]
-# # 7 [4, 14]
-# 
-# 
-# # 50% interval
-# sorted_top_over_3[2500]
-# # .025*10000
-# sorted_top_over_3[7500]
-# # 7 [5, 9]
-# 
-# inertia.gain.df <- do.call(rbind.data.frame, inertia.gain)
-# names(inertia.gain.df) <- c(1:20)
-# 
-# inertia.gain.df.melt <- melt(inertia.gain.df,measure.vars = c(1:20))
-# 
-# interia.gain.change.df <- do.call(rbind.data.frame, interia.gain.change)
-# names(interia.gain.change.df) <- c(2:19)
-# 
-# interia.gain.change.df.melt <- melt(interia.gain.change.df,measure.vars = c(1:18))
-# 
-# colMeans(interia.gain.change.df)
-# # hist(interia.gain.change.df[,7], breaks = 50)
-# 
-# 
-# boxplot(interia.gain.change.df.melt$value~interia.gain.change.df.melt$variable,
-#         ylim = c(-0.5,2.5))
-# abline(h=0)
-# # ?boxplot
-# 
-# 
-# summary(inertia.gain.df.melt$variable)
-# 
-# # See how inertia gain looks
-# boxplot(inertia.gain.df.melt$value~inertia.gain.df.melt$variable)
-# 
-# 
-# x <- dplyr::summarise(group_by(interia.gain.change.df.melt,
-#                                                 variable),
-#                                        mean = mean(value)
-# )
-# 
-
-
 
 
 # 8. Find optimal number of clusters -------
@@ -616,12 +497,15 @@ interia.gain.change.df.melt <- melt(inertia.gain.df,measure.vars = c(1:19))
 boxplot(interia.gain.change.df.melt$value~interia.gain.change.df.melt$variable)
 
 # Median, 95% CI and 50% CI
-sort(nclus5)[c(250,2500, 5000, 7500, 9750)]
+sort(nclus4)[c(25,500,950)]
 
 sort(nclus3)[c(250,2500, 5000, 7500, 9750)]
 
 
-
+# ggplot for inertia gain
+ggplot(interia.gain.change.df.melt, aes_string(x = "variable", y = "value")) +
+  geom_point(alpha = 0.8
+             )
 
 
 
