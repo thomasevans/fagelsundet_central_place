@@ -27,10 +27,10 @@ library("car")
 # Plot correlation matrix thing
 library("PerformanceAnalytics")
 
-# To determine optimal number of clusters, and which clusters are statistically supported
-install.packages("pvclust")
-library("pvclust")
-# vignette("pvclust")
+# # To determine optimal number of clusters, and which clusters are statistically supported
+# install.packages("pvclust")
+# library("pvclust")
+# # vignette("pvclust")
 
 # Themes etc for ggplot figures
 theme_new <- theme_bw(base_size = 14, base_family = "serif") +
@@ -106,15 +106,6 @@ e_day_j <- format(e_day, "%j")
 j_days_include <- c(s_day_j:e_day_j)
 
 
-# test_date_time <- seq.POSIXt(from = as.POSIXct("2015-07-12 09:00"),
-#                                    to =as.POSIXct("2015-07-12 15:00"), by =  "min",
-#                              tz = "UTC")
-# 
-# start_time <- as.POSIXct("2015-07-12 10:50", tz = "utc")
-# 
-# # Get index of first row where date_time is more than start_time
-# Position(function(x) x > start_time, test_date_time)
-
 
 # Only retain data from study period
 trip.details <- filter(trip.details, j_day %in%  j_days_include)
@@ -133,8 +124,8 @@ trips.sub <- filter(trip.details, coldist_max > 2000&
 # Time before/ after sunrise
 trips.sub$sunrise.prox <- cos((trips.sub$sunrise_after_h/12)*pi)
 
-hist(trips.sub$sunrise.prox)
-plot(trips.sub$sunrise.prox~trips.sub$sunrise_after_h)
+# hist(trips.sub$sunrise.prox)
+# plot(trips.sub$sunrise.prox~trips.sub$sunrise_after_h)
 
 # Time before/ after sunset
 trips.sub$sunset.prox <- cos((trips.sub$sunset_after_h/12)*pi)
@@ -142,46 +133,46 @@ trips.sub$sunset.prox <- cos((trips.sub$sunset_after_h/12)*pi)
 
 # Time before/ after noon
 trips.sub$solarnoon.prox <- cos((trips.sub$solarnoon_after_h/12)*pi)
-hist(trips.sub$solarnoon.prox)
+# hist(trips.sub$solarnoon.prox)
 
 
 # Time before/ after sunrise
 trips.sub$sunrise.prox.mid <- cos((trips.sub$sunrise_after_h_mid/12)*pi)
 
-hist(trips.sub$sunrise.prox.mid)
+# hist(trips.sub$sunrise.prox.mid)
 # plot(trips.sub$sunrise.prox.mid~trips.sub$sunrise_after_h)
 
 # Time before/ after sunset
 trips.sub$sunset.prox.mid <- cos((trips.sub$sunset_after_h_mid/12)*pi)
-hist(trips.sub$sunset.prox.mid)
+# hist(trips.sub$sunset.prox.mid)
 
 # Time before/ after noon
 trips.sub$solarnoon.prox.mid <- cos((trips.sub$solarnoon_after_h_mid/12)*pi)
-hist(trips.sub$solarnoon.prox.mid)
+# hist(trips.sub$solarnoon.prox.mid)
 
 
 
 # Transformations of proportion variables
 trips.sub$p_flight_logit <- logit(trips.sub$p_flight)
-hist(trips.sub$p_flight_logit)
+# hist(trips.sub$p_flight_logit)
 
 trips.sub$p_land_logit <- logit(trips.sub$p_land)
-hist(trips.sub$p_land_logit)
+# hist(trips.sub$p_land_logit)
 
 trips.sub$p_sea_logit <- logit(trips.sub$p_sea)
-hist(trips.sub$p_sea_logit)
+# hist(trips.sub$p_sea_logit)
 
 trips.sub$p_coast_logit <- logit(trips.sub$p_coast)
-hist(trips.sub$p_coast_logit)
+# hist(trips.sub$p_coast_logit)
 
 trips.sub$p_landfill_logit <- logit(trips.sub$p_landfill)
-hist(trips.sub$p_landfill_logit)
+# hist(trips.sub$p_landfill_logit)
 
 trips.sub$p_water_20m_logit <- logit(trips.sub$p_water_20m)
-hist(trips.sub$p_water_20m_logit)
+# hist(trips.sub$p_water_20m_logit)
 
 trips.sub$p_water_50m_logit <- logit(trips.sub$p_water_50m)
-hist(trips.sub$p_water_50m_logit)
+# hist(trips.sub$p_water_50m_logit)
 
 
 
@@ -189,26 +180,17 @@ hist(trips.sub$p_water_50m_logit)
 # "coldist_max", "col_dist_median", "duration_s", "tortoisity"
 
 trips.sub$log_coldist_max <- log10(trips.sub$coldist_max)
-hist(trips.sub$log_coldist_max)
+# hist(trips.sub$log_coldist_max)
 
 trips.sub$log_col_dist_median <- log10(trips.sub$col_dist_median)
-hist(trips.sub$log_col_dist_median)
+# hist(trips.sub$log_col_dist_median)
 
 trips.sub$log_duration_s <- log10(trips.sub$duration_s)
-hist(trips.sub$log_duration_s)
+# hist(trips.sub$log_duration_s)
 
-trips.sub$log_tortoisity <- log(trips.sub$tortoisity-0.999)
-hist(trips.sub$log_tortoisity)
+trips.sub$log_tortoisity <- log10(trips.sub$tortoisity-0.999)
+# hist(trips.sub$log_tortoisity)
 
-# # Time of day variables
-# trips.sub$sunrise.prox_logit <- logit((trips.sub$sunrise.prox+1)/2)
-# hist(trips.sub$sunrise.prox_logit)
-# 
-# trips.sub$sunset.prox_logit <- logit((trips.sub$sunset.prox+1)/2)
-# hist(trips.sub$sunset.prox_logit)
-
-# plot(trips.sub$sunset.prox_logit~trips.sub$sunset_after_h)
-# plot(trips.sub$sunset.prox~trips.sub$sunset_after_h)
 
 
 # 6. PCA analysis - prepare dataframe ------
@@ -225,12 +207,14 @@ vars <- c("trip_id", "ring_number", "device_info_serial", "species",
           "p_water_50m_logit",
           "sunrise.prox", "sunset.prox", "solarnoon.prox",
           "sunrise.prox.mid", "sunset.prox.mid", "solarnoon.prox.mid"
+)
+
 # "sunrise_after_h",
 # "sunset_after_h",
 # "solarnoon_after_h",
 # "sunrise_after_h_mid", "sunset_after_h_mid",
 # "solarnoon_after_h_mid"
-)
+# )
 
 pca.df_incl_trip_info <- select(trips.sub, one_of(vars))
 
@@ -250,6 +234,7 @@ pca.scores.list <- list()
 pca.eigens.list <- list()
 
 trips.sp <- split(trips.sub$trip_id, trips.sub$species)
+
 
 summary(trips.sp)
 
@@ -306,9 +291,10 @@ pca.eigens.df <- do.call(rbind.data.frame, pca.eigens.list)
 
 pca.scores.df <- do.call(rbind.data.frame, pca.scores.list)
 
-hist(pca.eigens.df$cumulative.variance.percent[pca.eigens.df$pca == 5])
-mean(pca.eigens.df$cumulative.variance.percent[pca.eigens.df$pca == 5], na.rm = TRUE)
-sort(pca.eigens.df$cumulative.variance.percent[pca.eigens.df$pca == 5])[c(50,500,950)]
+
+hist(pca.eigens.df$cumulative.variance.percent[pca.eigens.df$pca == "Dim.5"])
+mean(pca.eigens.df$cumulative.variance.percent[pca.eigens.df$pca == "Dim.5"], na.rm = TRUE)
+sort(pca.eigens.df$cumulative.variance.percent[pca.eigens.df$pca == "Dim.5"])[c(50,500,950)]
 
 # plot density plot thing for eigenvalues
 theme_new <- theme_bw(base_size = 14, base_family = "serif") +
@@ -365,6 +351,7 @@ write.csv(eig.summary.df, file = "pca_eigen_summary.csv")
 
 
 str(pca.scores.df)
+
 # Get mean PCA components
 pca.scores.mean.df <- dplyr::summarise(group_by(pca.scores.df,
                                      trip_id),
@@ -423,11 +410,48 @@ source("NbClust_new_d_index_only.R")
   #inertia values (2-20 clusters)
   # Scree plot
   plot(res[[1]]~c(2:23), type = "b")
+  abline(v=8)
   
-  # Change in inertia thing
+  df.inertia <- cbind.data.frame(res[[1]], c(2:23))
+  names(df.inertia) <- c("inertia", "n_clust")
+  
+  
+  ggplot(df.inertia, aes(y = inertia, x = n_clust)) +
+    geom_bar(stat="identity")+
+    labs(list(x = "Number of clusters",
+            y = "Inertia gain"))
+            
+  ggsave(filename = "inertia_gain_clusters.svg", width = 4, height = 4,
+         units = "in")
+  ggsave(filename = "inertia_gain_clusters.png", width = 4, height = 4,
+         units = "in")
+  ggsave(filename = "inertia_gain_clusters.pdf", width = 4, height = 4,
+         units = "in")
+  
+    # Change in inertia thing
   res[[2]][2:21]
   plot(res[[2]][2:21]~c(1:20), type = "l")
 
+  
+  
+  df.inertia2 <- cbind.data.frame(res[[2]][2:21], c(1:20))
+  names(df.inertia2) <- c("inertia", "n_clust")
+  
+  
+  ggplot(df.inertia2, aes(y = inertia, x = n_clust)) +
+    geom_line()+
+    labs(list(x = "Number of clusters",
+              y = "Rate of change of inertia"))
+  
+  ggsave(filename = "inertia_gain_clusters_rate.svg", width = 4, height = 4,
+         units = "in")
+  ggsave(filename = "inertia_gain_clusters_rate.png", width = 4, height = 4,
+         units = "in")
+  ggsave(filename = "inertia_gain_clusters_rate.pdf", width = 4, height = 4,
+         units = "in")
+  
+  
+  
   # Indicates two optima, one of 4 clusters, and the next at 8 clusters, beyond this inertia gain is small
   # and no clear cut-off
   
