@@ -38,7 +38,21 @@ library(maps)
 library(RColorBrewer)
 library(raster)
 
-myColors <- c("#66c2a5", "#fc8d62", "#8da0cb", "grey40")
+
+# 8 Colours from:
+# http://colorbrewer2.org/?type=qualitative&scheme=Set1&n=8
+myColors <- c("#e41a1c","#377eb8","#4daf4a","#984ea3","#ff7f00","#ffff33","#a65628","#f781bf")
+
+# 4 Colours for species:
+# From: mkweb.bcgsc.ca
+spColors <- c("#0072b2",  "#d55e00",
+              "#009e73", "#cc79a7")
+# Blue, Bluish green, Vermillion, Reddish purple
+# RGB:
+# Orange: 230,159,0
+# Sky blue: 86, 180, 233
+# Vermillion 213, 94, 0
+# Reddish purple 204, 121, 167
 
 
 # Alpha channel
@@ -70,7 +84,9 @@ load("openstreetmap_coast_polygon.RData")
 
 
 # Cluster data
-load("clusters_newx.RData")
+load("cluster_data_detailed.RData")
+clust.out <- clust.tab
+
 
 # Waterways data
 # Load same data
@@ -106,49 +122,19 @@ gps.points <- filter(gps.points, latitude <62.5)
 
 
 
-# # 3. Resample data to 5 minute intervals for illustration -----
-# # Treat each trip as a 'burst'
-# gps.points.ltraj <- as.ltraj(gps.points[,4:3], gps.points$date_time,
-#                                    gps.points$device_info_serial,
-#                                    burst = gps.points$trip_id, typeII = TRUE)
-# # plot(gps.points.ltraj[600])
-# 
-# 
-# # Interpolate to 300 s for plotting
-# gps.points.ltraj.300 <- redisltraj(gps.points.ltraj, 300, type = "time")
-# 
-# # Convert to data frame
-# gps.points.ltraj.300.df <- ld(gps.points.ltraj.300)
-# 
-# # Check all trips are here!
-# length(unique(gps.points.ltraj.300.df$burst))
-# 
-# # Merge info with cluster df
-# names(gps.points.ltraj.300.df)[11:12] <- c("device_info_serial",
-#                                            "trip_id")
-# 
-# str(gps.points.ltraj.300.df)
-# 
-# gps.points.ltraj.300.df$trip_id <- as.numeric(as.character(gps.points.ltraj.300.df$trip_id))
-# 
-# # If merging do this:
-# # gps.points.all <- merge(gps.points.ltraj.300.df,
-# #                         clust.out,
-# #                         by = "trip_id")
-
-
 
 # 4. Proportions -------
-tab.k.sp <- table(clust.out[,c(9,5)])
+tab.k.sp <- table(clust.out[,c("species","memb")])
+
 # 
 # Numbers
 tab.k.sp
 tab.k.sp[1,2]
 
 # Proportions
-#Within clusters
+#Within species
 prop.table(tab.k.sp, 1)
-#WIthin species
+#WIthin clusters
 prop.table(tab.k.sp, 2)
 
 
@@ -167,10 +153,7 @@ long.range[1] <- long.range[1] - (0.15*long.range.dif)
 long.range[2] <- long.range[2] + (0.15*long.range.dif)
 
 # Reduce file size by clipping only map area required 
-# gadm_clip <- crop(gadm, extent(long.range[1],
-#                                long.range[2],
-#                                lat.range[1],
-#                                lat.range[2]))
+
 
 gadm_clip <- crop(openstreetmap_coast_polygon, extent(long.range[1],
                                long.range[2],
@@ -205,145 +188,30 @@ map.base.fun <- function(xlim = c(17,18.3), ylim =  c(57,57.7),
   
 }
 
-# i <- 1
-# Map cluster
-# Cluster Number
-# ?pdf
 
 gg_color_hue <- function(n) {
   hues = seq(15, 375, length = n + 1)
   hcl(h = hues, l = 65, c = 100)[1:n]
 }
 
-col.outs <- gg_color_hue(4)
-
-pdf("cluster_maps_ind_detailed_map2_col.pdf", width = 12, height = 8)
-png("cluster_maps_grid_detailed_map2_col.png", width = 12, height = 8,
-    units = "in", res = 300)
-svg("cluster_maps_grid_detailed_map2.svg", width = 12, height = 8)
-
-tiff("cluster_maps_grid_detailed_map2_col_test.png", width = 4, height = 4,
-     units = "in", res = 300, compression = "lzw")
-
-tiff("cluster_maps_grid_detailed_map2_col_2.tiff", width = 12, height = 8,
-     units = "in", res = 600, compression = "lzw")
-
-tiff("cluster_maps_grid_detailed_map2_all_species_scrambled.tiff", width = 8, height = 8,
-     units = "in", res = 600, compression = "lzw")
-
-clust.out.original <- clust.out
-
-clust.out <- clust.out.original
-clust.out <- clust.out.original[sample(795,795),]
-# ?sample
-# ?svg
-# ?png
-# i <- 1
-specs <- sort(unique(clust.out$species))
-
-
-par(mfrow=c(1,1))
-# par(mfrow=c(2,3))
-
-unique(clust.out$cluster)
-# Plot base map
-map.base.fun(xlim = range(gps.points$longitude),
-             ylim = range(gps.points$latitude),
-             title.text = "All trips - Species")
-# 
-# for(i in 1:4){
-#   
-
-plot(water.lines, col="blue", add = TRUE)
-plot(water.polygons, add=TRUE, col = "blue")
-  
-
-# clust.num <- i
-cluster.trips <- clust.out$trip_id
-# points.f <- dplyr::filter(gps.points, trip_id %in% cluster.trips)
-
-# Map each trip in turn
-# ix <- 1
-for(ix in 1:length(cluster.trips)){
-  # cluster.trips[i] %in% gps.points.ltraj.300.df$trip_id
-  
-  gps.sub <- filter(gps.points, trip_id == clust.out$trip_id[ix])
-  
-  sp.col <- addalpha(col.outs[specs == clust.out$species[ix]
-                              ], alpha = 0.15)
-  
-  # x <- cluster.trips[i]
-  # ?subset
-  # ?filter
-  n <- length(gps.sub$long)
-  segments(gps.sub$long[-1], gps.sub$lat[-1],
-           gps.sub$long[1:n-1], gps.sub$lat[1:n-1],
-           # col = "light grey", lty = 1, lwd = 0.4)
-  col = sp.col, lty = 1, lwd = 1)
-
-}
-
-# }
-
-
-
-# Add colony location
-points(17.93, 60.63, pch = 21,
-       col = "#7570b3", bg = addalpha("#7570b3", alpha = 0.5),
-       cex = 2)
-
-
-# Add landfill locations
-lat <- c( 60.686575,  60.639238,  60.611447,
-          60.290733,  59.920735,  59.929981,
-          59.550136,  59.172017)
-long <- c( 17.155740,  16.879813,  15.574975,
-           17.574914,  16.722996,  17.770531,
-           17.615439,  17.989668)
-points(long, lat, pch = 23,
-       col = "#7570b3", bg = addalpha("#7570b3", alpha = 0.4),
-       cex = 2)
-
-# Add map scale bar
-map.scale2(ratio = FALSE, lwd.line = 2,
-           relwidth = 0.25, cex = 1.2)
-
-# ?legend
-  legend(x = "topleft",
-         legend = c("Colony",
-                    "Landfill",
-                    "L. argentatus/ HG",
-                    "L. canutus/ CG",
-                    "L. fuscus/ LBBG",
-                    "L. marinus/ GBBG"),
-         col = c("#7570b3", "#7570b3",
-                 col.outs),
-         pt.bg = c(addalpha("#7570b3", alpha = 0.4), addalpha("#7570b3", alpha = 0.4),
-                   NA, NA, NA, NA),
-         lwd = c(1, 1, 3, 3, 3, 3),
-         lty = c(NA, NA, 1, 1, 1, 1),
-         pch = c(21, 23, NA, NA, NA, NA),
-         pt.cex = 2,
-         bty = "n",
-         cex = 1.3)
-
-
-
-dev.off()
+col.outs <- gg_color_hue(8)
 
 
 
 
-# Plot sepperate panels for each cluster -----
 
+# 6. Plot sepperate panels for each cluster -----
+clust.out$cluster <- clust.out$memb
 clusts <- sort(unique(clust.out$cluster))
 
 
 
-svg("cluster_maps_grid_detailed_newx.svg", width = 12, height = 12)
+svg("cluster_maps_grid_detailed_test_alpha.svg", width = 12, height = 12)
+
+png("cluster_maps_grid_detailed_test_alpha.png", width = 12, height = 12, units = "in",
+    res = 600)
 
 
-# par(mfrow=c(1,1))
 par(mfrow=c(3,3))
 
 # Plot base map
@@ -359,12 +227,13 @@ points.f <- dplyr::filter(gps.points, trip_id %in% cluster.trips)
 
 map.base.fun(xlim = range(points.f$longitude),
              ylim = range(points.f$latitude),
-             title.text = paste("cluster: ", clusts[i]))
+             title.text = paste("cluster: ", clusts[i]),
+             col.out = col.outs[i])
 
 
 
 # Map each trip in turn
-ix <- 1
+# ix <- 1
 for(ix in 1:length(cluster.trips)){
   # cluster.trips[i] %in% gps.points.ltraj.300.df$trip_id
   
@@ -379,7 +248,8 @@ for(ix in 1:length(cluster.trips)){
   n <- length(gps.sub$long)
   segments(gps.sub$long[-1], gps.sub$lat[-1],
            gps.sub$long[1:n-1], gps.sub$lat[1:n-1],
-           col = addalpha("black", 0.5), lty = 1, lwd = 0.4)
+           # col = "black", lty = 1, lwd = 0.4)
+           col = addalpha("black", 0.2), lty = 1, lwd = 0.4)
            # col = sp.col, lty = 1, lwd = 1)
   
 
@@ -434,3 +304,107 @@ dev.off()
 
 
 
+
+
+# 7. Species map -----
+svg("species_maps_grid_detailed.svg", width = 8, height = 8)
+
+png("species_maps_grid_detailed_alpha_thicker_lines.png", width = 8, height = 8, units = "in",
+    res = 600)
+# ?png
+par(mar=c(2, 2, 0.5, 0.5) + 0.1)
+par(mfrow=c(1,1))
+par(mar=c(2, 2, 0.5, 0.5) + 0.1)
+
+  
+  # clust.num <- i
+  # cluster.trips <- clust.out$trip_id[clust.out$cluster == clusts[i]]
+  points.f <- dplyr::filter(gps.points, trip_id %in% clust.out$trip_id)
+  
+  map.base.fun(xlim = range(points.f$longitude),
+               ylim = range(points.f$latitude),
+               title.text = "",
+               col.out = "black")
+  
+  
+  # sp.col.alpha <- sapply(X = spColors, alpha = 0.15, FUN = addalpha)
+  
+  sp.col.alpha <- addalpha(spColors, 0.3)
+
+  sp <- sort(unique(clust.out$species))
+  
+         
+  
+  clust.out <- clust.out[sample(c(1:nrow(clust.out))),]
+  # ?sample
+  # Map each trip in turn
+  # ix <- 1
+  for(ix in 1:length(clust.out$trip_id)){
+    # for(ix in 1:100){
+      
+    # cluster.trips[i] %in% gps.points.ltraj.300.df$trip_id
+    
+    gps.sub <- filter(points.f, trip_id == clust.out$trip_id[ix])
+    
+    # sp.col <- addalpha(col.outs[specs == clust.out$species[ix]
+    # ], alpha = 0.15)
+    
+    # x <- cluster.trips[i]
+    # ?subset
+    # ?filter
+    n <- length(gps.sub$long)
+    segments(gps.sub$long[-1], gps.sub$lat[-1],
+             gps.sub$long[1:n-1], gps.sub$lat[1:n-1],
+             # col = "black", lty = 1, lwd = 0.4)
+             col = sp.col.alpha[clust.out$species[ix] == sp],
+             lty = 1, lwd = 0.6)
+    # col = sp.col, lty = 1, lwd = 1)
+    
+    
+    
+  }
+  
+  
+  
+  # Add colony location
+  points(17.93, 60.63, pch = 21,
+         col = "#7570b3", bg = addalpha("#7570b3", alpha = 0.7),
+         cex = 2)
+  
+  
+  # Add landfill locations
+  lat <- c( 60.686575,  60.639238,  60.611447,
+            60.290733,  59.920735,  59.929981,
+            59.550136,  59.172017)
+  long <- c( 17.155740,  16.879813,  15.574975,
+             17.574914,  16.722996,  17.770531,
+             17.615439,  17.989668)
+  points(long, lat, pch = 23,
+         col = "#7570b3", bg = addalpha("#7570b3", alpha = 0.6),
+         cex = 2)
+  
+  # Add map scale bar
+  map.scale2(ratio = FALSE, lwd.line = 2,
+             relwidth = 0.25, cex = 1.2)
+  
+
+  
+legend(x = "topleft",
+       legend = c("Colony",
+                  "Landfill",
+                  expression(italic(L.~argentatus)~~-~HG),
+                  expression(italic(L.~canus)~~-~CG),
+                  expression(italic(L.~fuscus)~~-~LBBG),
+                  expression(italic(L.~marinus)~~-~GBBG)),
+       col = c("#7570b3", "#7570b3",
+               spColors),
+       pt.bg = c(addalpha("#7570b3", alpha = 0.4), addalpha("#7570b3", alpha = 0.4),
+                 NA, NA, NA, NA),
+       lwd = c(1, 1, 3, 3, 3, 3),
+       lty = c(NA, NA, 1, 1, 1, 1),
+       pch = c(21, 23, NA, NA, NA, NA),
+       pt.cex = 2,
+       bty = "n",
+       cex = 1.3)
+
+dev.off()
