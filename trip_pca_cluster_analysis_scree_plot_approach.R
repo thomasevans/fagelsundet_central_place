@@ -46,7 +46,31 @@ theme_new <- theme_bw(base_size = 14, base_family = "serif") +
         legend.key.width = unit(1, "lines"),
         legend.title = element_blank()
   )
-myColors <- c("#66c2a5", "#fc8d62", "#8da0cb", "grey40")
+
+
+theme_new_rt <- theme_bw(base_size = 14, base_family = "serif") +
+  theme(legend.justification = c(1, 1),
+        legend.key.size =   unit(2, "lines"),
+        legend.key = element_rect(colour =NA),
+        legend.text = element_text(size = 12, face = "italic"),
+        axis.text = element_text(size = 14),
+        axis.title = element_text(size = 14),
+        legend.text.align = 0,
+        # legend.text = element_text(colour="blue", size = 16, face = "bold")
+        legend.key.width = unit(1, "lines"),
+        legend.title = element_blank()
+  )
+# myColors <- c("#66c2a5", "#fc8d62", "#8da0cb", "grey40")
+
+# 4 Colours for species:
+# From: mkweb.bcgsc.ca
+spColors <- c("#0072b2",  "#d55e00",
+              "#009e73", "#cc79a7")
+
+
+# 8 Colours for clusters:
+# http://colorbrewer2.org/?type=qualitative&scheme=Set1&n=8
+myColors <- c("#e41a1c","#377eb8","#4daf4a","#984ea3","#ff7f00","#ffff33","#a65628","#f781bf")
 
 
 # 2. Load in trip details ------
@@ -242,6 +266,9 @@ summary(trips.sp)
 pca.scores.list <- list()
 pca.eigens.list <- list()
 
+pca.var.load.list <- list()
+pca.var.contr.list <- list()
+
 # Run PCA lots of times
 # for(run_num in c(1:1000)){
 
@@ -261,6 +288,16 @@ for(run_num in c(1:1000)){
   res.pca <- PCA(pca.df_only, ncp = 10,
                  ind.sup = sup.inds,
                  graph=FALSE)
+  
+
+  # Summarise variable loadings
+  # str(res.pca)
+  
+  pc.contr <- (res.pca$var$contrib)
+  
+  loadings <- sweep(res.pca$var$coord, 2,
+                    sqrt(res.pca$eig[1:10,1]), FUN = "/")
+  
   
   # Make dataframe of PC scores
   pca.score.df <- rbind.data.frame(res.pca$ind$coord,
@@ -285,16 +322,62 @@ for(run_num in c(1:1000)){
   pca.scores.list[[run_num]] <- pca.score.df
   pca.eigens.list[[run_num]] <- eigens
   
+  pca.var.load.list[[run_num]] <- loadings
+  pca.var.contr.list[[run_num]] <- pc.contr
+  
 }
 
 pca.eigens.df <- do.call(rbind.data.frame, pca.eigens.list)
 
 pca.scores.df <- do.call(rbind.data.frame, pca.scores.list)
 
+# ci05 <- function(x){
+#   return(sort(x)[50])
+# }
+# 
+# ci95 <- function(x){
+#   return(sort(x)[950])
+# }
+
+# Mean contribution for variables
+contribution.means <- apply(simplify2array(pca.var.contr.list), c(1,2), mean)
+contribution.sd <- apply(simplify2array(pca.var.contr.list), c(1,2), sd)
+# ?sd
+
+# contribution.05 <- apply(simplify2array(pca.var.contr.list), c(1,2), ci05)
+# contribution.95 <- apply(simplify2array(pca.var.contr.list), c(1,2), ci95)
+# # ?sd
+
+x <- contribution.means/contribution.sd
+
+colSums(contribution.means)
+
+# Mean loading for variables
+loadings.means <- apply(simplify2array(pca.var.load.list), c(1,2), mean)
+loadings.sd <- apply(simplify2array(pca.var.load.list), c(1,2), sd)
+# ?sd
+x <- loadings.means/loadings.sd
+
+# ?simplify2array
+
+summary.tab <- paste(trimws(format(round(loadings.means, 3), nsmall = 3),
+                            which = "left"), " (",
+                     trimws(format(round(contribution.means, 0), nsmall = 1), which = c("left")),
+                     ")", sep = "")
+summary.tab <- as.data.frame(matrix(summary.tab, ncol = 10))
+summary.tab$var <- row.names(loadings.means)
+
+summary.tab.export <- cbind.data.frame(summary.tab[,c(11,1:5)])
+# paste(".", format(098, nsmall = 0), sep = "")
+
+write.csv(summary.tab.export, file = "loading_contribution_pca.csv")
+
+# paste(".", format(round(contribution.means[3], 0), nsmall = 1), sep = "")
+# paste(".", format(round(contribution.means[2:3], 0), nsmall = 1), sep = "")
 
 hist(pca.eigens.df$cumulative.variance.percent[pca.eigens.df$pca == "Dim.5"])
 mean(pca.eigens.df$cumulative.variance.percent[pca.eigens.df$pca == "Dim.5"], na.rm = TRUE)
-sort(pca.eigens.df$cumulative.variance.percent[pca.eigens.df$pca == "Dim.5"])[c(50,500,950)]
+sort(pca.eigens.df$cumulative.variance.percent[pca.eigens.df$pca == 5])[c(50,500,950)]
 
 # plot density plot thing for eigenvalues
 theme_new <- theme_bw(base_size = 14, base_family = "serif") +
@@ -349,6 +432,9 @@ eig.summary.df <- dplyr::summarise(group_by(pca.eigens.df,
 )
 write.csv(eig.summary.df, file = "pca_eigen_summary.csv")
 
+# Correlation between variables and components
+dimdesc(res.pca, axes = 1:5, proba = 0.05)
+
 
 str(pca.scores.df)
 
@@ -386,7 +472,6 @@ pca.table <- merge(pca.scores.mean.df,
                    trips.sub[,c(1:4)],
                    by = "trip_id")
 write.csv(pca.table, file = "pca.table.csv")
-
 # save(list(pca.table,eig.summary.df,
 #           pca.scores.list, pca.eigens.list), file = "pca.data.RData")
 # 
@@ -434,7 +519,7 @@ source("NbClust_new_d_index_only.R")
 
   
   
-  df.inertia2 <- cbind.data.frame(res[[2]][2:21], c(1:20))
+  df.inertia2 <- cbind.data.frame(res[[2]][2:21], c(2:21))
   names(df.inertia2) <- c("inertia", "n_clust")
   
   
@@ -465,15 +550,26 @@ source("NbClust_new_d_index_only.R")
 # ?hclust
   plot(hc)
   
+  hcd <- as.dendrogram(hc)
+  plot(hcd, ylab = "Height",
+       # nodePar = nodePar,
+       leaflab = "none")
+  
   # rect.hclust(hc, k = 4, border = "blue")
-  rect.hclust(hc, k = 8, border = "red")
+  rect.hclust(hc, k = 7, border = "red")
   
   # What cluster (of 8) are each trip in?
-  memb <- cutree(hc, k = 8)
-  
-  # 8 Cluster centres
+  memb <- cutree(hc, k = 7)
+#   
+#   memb <- cutree(hc, h = 4)
+#   max(memb)
+#   
+#   
+#   ?cutree
+#   
+  # 7 Cluster centres
     cent <- NULL
-    for(k in 1:8){
+    for(k in 1:max(memb)){
       cent <- rbind(cent, colMeans(pca.table[,c(2:6)][memb == k, , drop = FALSE]))
     }
   
@@ -505,6 +601,311 @@ source("NbClust_new_d_index_only.R")
     save(clust.tab, file = "cluster_data_detailed.RData")
     
     write.csv(clust.tab, file = "cluster_data_detailed.csv")
+    
+    
+    
+    
+    # 10. Plots to summarise PCA and clustering -------
+    # on resume:
+    load("cluster_data_detailed.RData")
+    
+    # 10a. PCA + clusters multi-panel plot -------
+    library(GGally)
+    library(cowplot)
+   
+    
+    clust.tab$cluster <- as.factor(clust.tab$memb)
+    # summary(clust.tab$cluster)
+    # Ref: John W Emerson, Walton A Green, Barret Schloerke, Jason Crowley, Dianne Cook, Heike Hofmann, Hadley Wickham. The Generalized Pairs Plot. Journal of Computational and Graphical Statistics, vol. 22, no. 1, pp. 79-91, 2012.
+    
+    # Overwite default ggplot function with additional pallete
+    # scales <- scale_colour_brewer(type = 'qual') %+% scale_fill_brewer(type = 'qual')
+    
+    
+    
+   
+    
+    p <- ggpairs(clust.tab, mapping = aes(color = cluster, alpha = 0.5),
+                 columns = c(2:6),
+                 upper=list(continuous='blank'),
+                 legends=TRUE) 
+      
+    p
+    # ?ggpairs
+    
+    
+      # Add legend, though to one plot only from:
+    # http://stackoverflow.com/questions/22945702/how-to-add-an-external-legend-to-ggpairs
+      colIdx <- c(3,5,6,7)
+      
+      for (i in 1:length(colIdx)) {
+        
+        # Address only the diagonal elements
+        # Get plot out of matrix
+        inner <- getPlot(p, i, i);
+        
+        # Add any ggplot2 settings you want (blank grid here)
+        inner <- inner + theme(panel.grid = element_blank()) +
+          theme(axis.text.x = element_blank())
+        
+        # Put it back into the matrix
+        p <- putPlot(p, inner, i, i)
+        
+        for (j in 1:length(colIdx)){
+          if((i==1 & j==1)){
+            
+            # Move legend right
+            inner <- getPlot(p, i, j)
+            inner <- inner + theme(legend.position=c(length(colIdx)-0.25,0.50)) 
+            p <- putPlot(p, inner, i, j)
+          }
+          else{
+            
+            # Delete legend
+            inner <- getPlot(p, i, j)
+            inner <- inner + theme(legend.position="none")
+            p <- putPlot(p, inner, i, j)
+          }
+        }
+      }
+      
+    p
+    
+    
+    ggsave(p, file = "pca_clusters.svg", width = 10, height = 10, units = "in")
+    ggsave(p, file = "pca_clusters.png", width = 10, height = 10, units = "in")
+    ggsave(p, file = "pca_clusters.pdf", width = 10, height = 10, units = "in")
+    
+    
+    
+    
+    # 10b. Cladogram thing -------
+    # Read in PCA table
+    pca.table <- read.csv("pca.table.csv")
+    
+    # install.packages("dendextend")
+    # Package for extended options for dendrograms
+    library(dendextend)
+    
+    # See guide here:
+    # https://cran.r-project.org/web/packages/dendextend/vignettes/FAQ.html
+    
+    
+    
+    
+    # Change labels
+    species.short <- clust.tab$species
+    species.short <- as.factor(species.short)
+    str(species.short)
+    levels(species.short) <- c("L.arg", "L.can", "L.fus", "L.mar")
+    
+    birds <- unique(clust.tab$ring_number)
+    
+    substrRight <- function(x, n){
+      substr(x, nchar(x)-n+1, nchar(x))
+    }    
+    
+    length(birds)
+    
+    birds_3 <- ((substrRight(clust.tab$ring_number, 3)))
+    
+    length(unique(birds_3))
+    
+    sp.ind <- paste(species.short, birds_3, clust.tab$trip_id, sep = ".")
+    
+    row.names(clust.tab) <- as.character(sp.ind)
+    
+    hc <- hclust(dist(clust.tab[,c(2:6)],
+                      method = "euclidean"),  "ward.D2")
+    # ?hclust
+    plot(hc)
+    
+    
+    # plot(hc)
+    
+    # rect.hclust(hc, k = 4, border = "blue")
+    rect.hclust(hc, k = 7, border = "red")
+    
+    # What cluster (of 7) are each trip in?
+    memb <- cutree(hc, k = 7)
+    # ?cutree
+    # make as dendrogram
+    dend <- as.dendrogram(hc)
+    
+    sp <- sort(unique(clust.tab$species))
+    
+    # Species colours
+    colors_to_use <- NULL
+    for(i in 1:nrow(clust.tab)){
+      colors_to_use[i] <- spColors[clust.tab$species[i] == sp]
+    }
+    colors_to_use_original <- colors_to_use
+    # But sort them based on their order in dend:
+    colors_to_use <- colors_to_use[order.dendrogram(dend)]
+    
+    labels_colors(dend) <- colors_to_use
+    
+    plot(dend)
+    
+    # Colour by clusters
+    gg_color_hue <- function(n) {
+      hues = seq(15, 375, length = n + 1)
+      hcl(h = hues, l = 65, c = 100)[1:n]
+    }
+    
+    # Get 7 colours
+    col.7 <- gg_color_hue(7)
+    
+    levels(clust_dend)
+    
+    # i <- 90
+    
+    colors_clust <- NULL
+    for(i in 1:nrow(clust.tab)){
+      colors_clust[i] <- col.7[as.numeric(as.character(clust.tab$cluster[i])) == c(1:7)]
+    }
+    colors_clust_dend <- colors_clust[order.dendrogram(dend)]
+    clust_dend <- clust.tab$cluster[order.dendrogram(dend)]
+    
+    dend1 <- color_branches(dend, k = 7,
+                            col = col.7[c(6,3,5,4,2,7,1)])
+    # ?color_branches
+    # ?color_branches
+    # plot(c(1:7), pch = 12, col = col.7)
+    
+    
+#     # Reduce text size
+    dend1 <- set(dend1, "labels_cex", 0.2)
+#     
+    
+    
+    pdf("dendrogram_test_label.pdf", width = 48, height = 12)
+    plot(dend1)
+    dev.off()
+    
+    
+   
+    
+
+    # levels(clust.tab$cluster)
+    
+    pdf("dendrogram_colour.pdf", width = 6, height = 6)
+    svg("dendrogram_colour.svg", width = 6, height = 6)
+    png("dendrogram_colour3.png", width = 6, height = 6,
+        units = "in",
+        res = 600)
+    
+    # With species bar
+    par(mar = c(6.5,5,1,1))
+    plot(dend1, leaflab = "none", cex.axis = 1,
+         las = 1, ylab = "Height", cex.lab = 1)
+    colored_bars(cbind(colors_to_use_original, colors_clust),
+                 dend1, rowLabels = c("Species", "Cluster"),
+                 y_shift = -1, y_scale = 12,
+                 cex = 1)
+    axis(side=(1),las=1, cex.lab = 1, cex.axis =1,
+         cex = 1, padj = -0.9, hadj = NA,
+         line = 3.7)
+    mtext("Foraging trips", side = 1,
+          line = 5)
+    
+    
+    # ?axis
+#     legend("topright", legend =  c(
+#       "L. argentatus", "L. canus", "L. fuscus", "L. marinus"
+#     ), fill = spColors, bty = "n")
+    # ?colored_bars
+    dev.off()
+    
+    pdf("dendrogram_colour_horizontal.pdf", width = 8, height = 8)
+    # With species bar
+    par(mar = c(7,2,2,10))
+    plot(dend1, leaflab = "none", cex.axis = 1,
+         las = 1, xlab = "Height", cex.lab = 1,
+         horiz = TRUE)
+    colored_bars(cbind(colors_clust, colors_to_use_original),
+                 dend1, rowLabels = c( "Cluster", "Species"),
+                  y_scale = 10, y_shift = 11,
+                 cex = 1, horiz = TRUE)
+    # ?colored_bars
+    legend("topleft", legend =  c(
+      "L. argentatus", "L. canus", "L. fuscus", "L. marinus"
+    ), fill = spColors, bty = "n")
+    # ?legend
+    dev.off()
+    
+    
+#     par(mar = c(4,1,1,12))
+#     plot(dend, horiz = TRUE)
+#     colored_bars(cbind(k234[,3:1], col_car_type), dend, rowLabels = c(paste0("k = ", 4:2), "Car Type"), horiz = TRUE)
+#     legend("topleft", legend = levels(car_type), fill = cols_4)
+#     
+    # ?colored_bars
+    
+    # Circular version
+    # install.packages("circlize")
+    library(circlize)
+    
+    
+    #     # Reduce text size
+    dend1 <- set(dend1, "labels_cex", 0.2)
+    #     
+    pdf("dendrogram_test_label_circle.pdf")
+    svg("dendrogram_test_label_circle.svg")
+    png("dendrogram_test_label_circle.png", width = 12, height = 12,
+        units = "in",
+        res = 600)
+    # plot the radial plot
+    par(mar = rep(0,4))
+    # ?circlize_dendrogram
+    # dend2 <- set(dend1, "labels_cex", 1)
+    
+    circlize_dendrogram(dend1,  facing = "outside", labels_track_height = 0.1,
+                        labels = TRUE) 
+    # circlize_dendrogram(dend)
+    # circos.dendrogram(dend)
+    dev.off()
+    
+    
+    # 10c. Barplot thing -----
+    
+    tab.k.sp <- table(clust.tab[,c("cluster", "species")])
+    # 
+    # Numbers
+    tab.k.sp
+    # tab.k.sp[1,2]
+    rowSums(tab.k.sp)
+    
+    tab.k.sp.t <- as.data.frame(tab.k.sp)
+    str(tab.k.sp.t)
+    
+    # Proportions
+    #Within species
+    tab.sp.t.p <- prop.table(tab.k.sp, 2)
+    
+ 
+    
+    tab.sp.t.p.t <- t(tab.sp.t.p)
+    tab.sp.t.p.t.df <- as.data.frame(tab.sp.t.p.t)
+    str(tab.sp.t.p.t.df)
+    names(tab.sp.t.p.t.df)[3] <- "perc_sp"
+    
+    
+    
+    
+    library(scales)
+    
+    ggplot(tab.sp.t.p.t.df, aes( x= cluster, group = cluster)) + 
+      geom_bar(aes(weight = perc_sp, fill = cluster)) + 
+      facet_grid(~species) +
+      scale_y_continuous(labels=percent) +
+      labs(y = "Proportion of trips (%)", fill="Cluster") +
+      theme_new_rt
+    
+    ggsave("cluster.prop.sp.prop.png", width = 8, height = 4)
+    ggsave("cluster.prop.sp.prop.svg", width = 8, height = 4)
+    ggsave("cluster.prop.sp.prop.pdf", width = 8, height = 4)
+    
     
   # ** IGNORE BELOW HERE!! ** -----
 
