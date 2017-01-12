@@ -39,9 +39,14 @@ library(RColorBrewer)
 library(raster)
 
 
-# 8 Colours from:
-# http://colorbrewer2.org/?type=qualitative&scheme=Set1&n=8
-myColors <- c("#e41a1c","#377eb8","#4daf4a","#984ea3","#ff7f00","#ffff33","#a65628","#f781bf")
+# Colour by clusters
+gg_color_hue <- function(n) {
+  hues = seq(15, 375, length = n + 1)
+  hcl(h = hues, l = 65, c = 100)[1:n]
+}
+
+# Get 7 colours
+col.7 <- gg_color_hue(7)
 
 # 4 Colours for species:
 # From: mkweb.bcgsc.ca
@@ -163,11 +168,12 @@ gadm_clip <- crop(openstreetmap_coast_polygon, extent(long.range[1],
 map.base.fun <- function(xlim = c(17,18.3), ylim =  c(57,57.7),
                          title.text = "", col.out = "black"){
   # par(mfrow=c(1,1))
-  par( mar = c(5, 4, 4, 2))
+  par( mar = c(1.5, 2, .5, .5))
   
   plot(gadm_clip, xlim = xlim,
        ylim = ylim, col= "dark grey", bg = NA,
-       main = title.text,
+       # main = title.text,
+       main = "",
        lty = 0)
  
   plot(water.lines,
@@ -179,25 +185,27 @@ map.base.fun <- function(xlim = c(17,18.3), ylim =  c(57,57.7),
   plot(water.polygons2,
        add = TRUE, col="light blue", border = NA)
   
-  axis(side=(1),las=1)
-  axis(side=(2),las=1)
-   
+  axis(side=(1),las=1, cex.lab = 0.5, cex.axis =0.5, cex = 0.5, padj = -2, hadj = NA)
+  axis(side=(2),las=1, cex.lab = 0.5, cex.axis =0.5, cex = 0.5, padj = 0, hadj = 0.6)
+  
+  # ?axis 
+  
   ## Scale bar and axis
   box(lwd=3, col = col.out)
  
   
 }
 
+# 
+# gg_color_hue <- function(n) {
+#   hues = seq(15, 375, length = n + 1)
+#   hcl(h = hues, l = 65, c = 100)[1:n]
+# }
+# 
+# col.outs <- gg_color_hue(8)
+col.outs <- col.7
 
-gg_color_hue <- function(n) {
-  hues = seq(15, 375, length = n + 1)
-  hcl(h = hues, l = 65, c = 100)[1:n]
-}
-
-col.outs <- gg_color_hue(8)
-
-
-
+# col.outs == myColors
 
 
 # 6. Plot sepperate panels for each cluster -----
@@ -215,11 +223,16 @@ png("cluster_maps_grid_detailed_test_alpha.png", width = 12, height = 12, units 
 par(mfrow=c(3,3))
 
 # Plot base map
-# i <- 1
+# i <- 2
 # 
+par(mfrow=c(1,1))
+
 for(i in 1:length(clusts)){
 #   
 
+  png(paste("cluster_maps_grid_detailed_test_alpha_clust_", clusts[i], ".png", sep = ""), width = 3, height = 3, units = "in",
+      res = 600)
+#   
 
 # clust.num <- i
 cluster.trips <- clust.out$trip_id[clust.out$cluster == clusts[i]]
@@ -227,7 +240,7 @@ points.f <- dplyr::filter(gps.points, trip_id %in% cluster.trips)
 
 map.base.fun(xlim = range(points.f$longitude),
              ylim = range(points.f$latitude),
-             title.text = paste("cluster: ", clusts[i]),
+             title.text = paste("Cluster: ", clusts[i]),
              col.out = col.outs[i])
 
 
@@ -249,7 +262,7 @@ for(ix in 1:length(cluster.trips)){
   segments(gps.sub$long[-1], gps.sub$lat[-1],
            gps.sub$long[1:n-1], gps.sub$lat[1:n-1],
            # col = "black", lty = 1, lwd = 0.4)
-           col = addalpha("black", 0.2), lty = 1, lwd = 0.4)
+           col = addalpha("black", 0.12), lty = 1, lwd = 0.8)
            # col = sp.col, lty = 1, lwd = 1)
   
 
@@ -259,9 +272,9 @@ for(ix in 1:length(cluster.trips)){
 
 
 # Add colony location
-points(17.93, 60.63, pch = 21,
-       col = "#7570b3", bg = addalpha("#7570b3", alpha = 0.5),
-       cex = 2)
+points(17.93, 60.63, pch = 23,
+       col = "black", bg = addalpha("white", alpha = 0.5),
+       cex = 1.5)
 
 
 # Add landfill locations
@@ -271,17 +284,72 @@ lat <- c( 60.686575,  60.639238,  60.611447,
 long <- c( 17.155740,  16.879813,  15.574975,
            17.574914,  16.722996,  17.770531,
            17.615439,  17.989668)
-points(long, lat, pch = 23,
-       col = "#7570b3", bg = addalpha("#7570b3", alpha = 0.4),
-       cex = 2)
+points(long, lat, pch = 21,
+       col = "black", bg = addalpha("white", alpha = 0.4),
+       cex = 1.5)
 
 # Add map scale bar
-map.scale2(ratio = FALSE, lwd.line = 2,
-           relwidth = 0.25, cex = 1.2)
+map.scale2(ratio = FALSE, lwd.line = 1.5,
+           relwidth = 0.25, cex = 0.5)
 
+
+dev.off()
 }
 
 dev.off()
+
+
+# Legend ----
+
+png("map_clust_legend.png", width = 3, height = 3, units = "in",
+    res = 600)
+par( mar = c(0, 0, 0, 0))
+
+plot(1:10,1:10,type = "n",
+     bty = NA)
+
+
+
+legend(x = "bottomleft",
+       legend = c(expression(italic(L.~argentatus)~~-~HG),
+                  expression(italic(L.~canus)~~-~CG),
+                  expression(italic(L.~fuscus)~~-~LBBG),
+                  expression(italic(L.~marinus)~~-~GBBG)),
+       col = c(spColors),
+       pt.bg = c(NA, NA, NA, NA),
+       lwd = c(8, 8, 8, 8),
+       lty = c(1, 1, 1, 1),
+       pch = c(NA, NA, NA, NA),
+       pt.cex = 2,
+       bty = "n",
+       cex = 1.2)
+
+legend(x = "topright",
+       legend = c("Colony",
+                  "Landfill",
+                  "Land",
+                  "Water (inland)",
+                  "Sea",
+                  "GPS track"),
+       col = c("black", "black",
+               "light grey", "light grey", "light grey"),
+       pt.bg = c("white", "white", "dark grey",
+                 "light blue", "white",
+                 "black"),
+       lwd = c(rep(NA,5), 2),
+       lty = c(rep(NA,5), 1),
+       pch = c(23, 21, 22, 22, 22, NA),
+       pt.cex = c(2,2, 2.5, 2.5, 2.5, NA),
+       bty = "n",
+       cex = 1.2)
+
+dev.off()
+
+
+
+#   
+
+
 
 # # ?legend
 # legend(x = "topleft",
@@ -309,12 +377,12 @@ dev.off()
 # 7. Species map -----
 svg("species_maps_grid_detailed.svg", width = 8, height = 8)
 
-png("species_maps_grid_detailed_alpha_thicker_lines.png", width = 8, height = 8, units = "in",
+png("species_maps_grid_detailed_alpha_thicker_lines_new.png", width = 8, height = 8, units = "in",
     res = 600)
 # ?png
-par(mar=c(2, 2, 0.5, 0.5) + 0.1)
+# par(mar=c(2, 2, 0.5, 0.5) + 0.1)
 par(mfrow=c(1,1))
-par(mar=c(2, 2, 0.5, 0.5) + 0.1)
+par(mar=c(3, 3, 0.5, 0.5) + 0.1)
 
   
   # clust.num <- i
@@ -355,9 +423,9 @@ par(mar=c(2, 2, 0.5, 0.5) + 0.1)
     n <- length(gps.sub$long)
     segments(gps.sub$long[-1], gps.sub$lat[-1],
              gps.sub$long[1:n-1], gps.sub$lat[1:n-1],
-             # col = "black", lty = 1, lwd = 0.4)
+             # col = spColors[clust.out$species[ix] == sp],
              col = sp.col.alpha[clust.out$species[ix] == sp],
-             lty = 1, lwd = 0.6)
+             lty = 1, lwd = 1)
     # col = sp.col, lty = 1, lwd = 1)
     
     
@@ -367,8 +435,10 @@ par(mar=c(2, 2, 0.5, 0.5) + 0.1)
   
   
   # Add colony location
-  points(17.93, 60.63, pch = 21,
-         col = "#7570b3", bg = addalpha("#7570b3", alpha = 0.7),
+  points(17.93, 60.63, pch = 23,
+         # col = "#7570b3", bg = addalpha("#7570b3", alpha = 0.7),
+         col = "black", bg = addalpha("white", alpha = 0.5),
+         lwd = 2,
          cex = 2)
   
   
@@ -379,8 +449,10 @@ par(mar=c(2, 2, 0.5, 0.5) + 0.1)
   long <- c( 17.155740,  16.879813,  15.574975,
              17.574914,  16.722996,  17.770531,
              17.615439,  17.989668)
-  points(long, lat, pch = 23,
-         col = "#7570b3", bg = addalpha("#7570b3", alpha = 0.6),
+  points(long, lat, pch = 21,
+         # col = "#7570b3", bg = addalpha("#7570b3", alpha = 0.6),
+         col = "black", bg = addalpha("white", alpha = 0.5),
+         lwd = 2,
          cex = 2)
   
   # Add map scale bar
@@ -390,20 +462,32 @@ par(mar=c(2, 2, 0.5, 0.5) + 0.1)
 
   
 legend(x = "topleft",
-       legend = c("Colony",
-                  "Landfill",
-                  expression(italic(L.~argentatus)~~-~HG),
+       legend = c(expression(italic(L.~argentatus)~~-~HG),
                   expression(italic(L.~canus)~~-~CG),
                   expression(italic(L.~fuscus)~~-~LBBG),
                   expression(italic(L.~marinus)~~-~GBBG)),
-       col = c("#7570b3", "#7570b3",
-               spColors),
-       pt.bg = c(addalpha("#7570b3", alpha = 0.4), addalpha("#7570b3", alpha = 0.4),
-                 NA, NA, NA, NA),
-       lwd = c(1, 1, 3, 3, 3, 3),
-       lty = c(NA, NA, 1, 1, 1, 1),
-       pch = c(21, 23, NA, NA, NA, NA),
+       col = c(spColors),
+       pt.bg = c(NA, NA, NA, NA),
+       lwd = c(3, 3, 3, 3),
+       lty = c(1, 1, 1, 1),
+       pch = c(NA, NA, NA, NA),
        pt.cex = 2,
+       bty = "n",
+       cex = 1.3)
+
+legend(x = "bottomright",
+       legend = c("Colony",
+                  "Landfill",
+                  "Land",
+                  "Water (inland)",
+                  "Sea"),
+       col = c("black", "black",
+               "light grey", "light grey", "light grey"),
+       pt.bg = c("white", "white", "dark grey", "light blue", "white"),
+       lwd = NA,
+       lty = NA,
+       pch = c(23, 21, 22, 22, 22),
+       pt.cex = c(2,2, 2.5, 2.5, 2.5),
        bty = "n",
        cex = 1.3)
 
