@@ -41,7 +41,8 @@ map.scale2 <- function (x, y, relwidth = 0.15, metric = TRUE, ratio = TRUE, line
     }
     lines(linexy, col = line.col, lwd = lwd.line)
     text(x + ats/perdeg, y + dy - 0.5 * cxy[2], labs, adj = c(0.4, 
-        0.5), ...)
+        0.1), ...)
+    # ?text
     if (ratio) 
         text(x, y + 0.5 * cxy[2], paste("scale approx 1:", format.pretty(scale), 
             sep = ""), adj = 0, ...)
