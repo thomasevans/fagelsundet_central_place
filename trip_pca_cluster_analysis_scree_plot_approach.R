@@ -25,7 +25,7 @@ library("factoextra")
 library("car")
 
 # Plot correlation matrix thing
-library("PerformanceAnalytics")
+# library("PerformanceAnalytics")
 
 # # To determine optimal number of clusters, and which clusters are statistically supported
 # install.packages("pvclust")
@@ -240,11 +240,13 @@ vars <- c("trip_id", "ring_number", "device_info_serial", "species",
 # "solarnoon_after_h_mid"
 # )
 
-pca.df_incl_trip_info <- select(trips.sub, one_of(vars))
+pca.df_incl_trip_info <- dplyr::select(trips.sub, one_of(vars))
 
 
-pca.df_only <- select(pca.df_incl_trip_info, -c(1:4))
+pca.df_only <- dplyr::select(pca.df_incl_trip_info, -c(1:4))
 row.names(pca.df_only) <- trips.sub$trip_id
+
+
 
 
 # 7. Bootstrapping the PCA ----------
@@ -272,8 +274,12 @@ pca.var.contr.list <- list()
 # Run PCA lots of times
 # for(run_num in c(1:1000)){
 
-for(run_num in c(1:1000)){
+# For reproducibility specify seed
+# ?set.seed
+set.seed(1)
+for(run_num in c(1:10000)){
   
+  # all.equal(unlist(samples), unlist(samples2), unlist(samples3))
   
   # Take a subset of data
   samples <- lapply(trips.sp, function(x) sample(x, 87, replace = FALSE))
@@ -327,9 +333,9 @@ for(run_num in c(1:1000)){
   
 }
 
-pca.eigens.df <- do.call(rbind.data.frame, pca.eigens.list)
+pca.eigens.df <- bind_rows(pca.eigens.list)
 
-pca.scores.df <- do.call(rbind.data.frame, pca.scores.list)
+pca.scores.df <- bind_rows(pca.scores.list)
 
 # ci05 <- function(x){
 #   return(sort(x)[50])
@@ -377,7 +383,7 @@ write.csv(summary.tab.export, file = "loading_contribution_pca.csv")
 
 hist(pca.eigens.df$cumulative.variance.percent[pca.eigens.df$pca == "Dim.5"])
 mean(pca.eigens.df$cumulative.variance.percent[pca.eigens.df$pca == "Dim.5"], na.rm = TRUE)
-sort(pca.eigens.df$cumulative.variance.percent[pca.eigens.df$pca == 5])[c(50,500,950)]
+sort(pca.eigens.df$cumulative.variance.percent[pca.eigens.df$pca == "Dim.5"])[c(500,5000,9500)]
 
 # plot density plot thing for eigenvalues
 theme_new <- theme_bw(base_size = 14, base_family = "serif") +
@@ -432,7 +438,7 @@ eig.summary.df <- dplyr::summarise(group_by(pca.eigens.df,
 )
 write.csv(eig.summary.df, file = "pca_eigen_summary.csv")
 
-# Correlation between variables and components
+# Correlation between variables and components (just last run)
 dimdesc(res.pca, axes = 1:5, proba = 0.05)
 
 
@@ -472,14 +478,16 @@ pca.table <- merge(pca.scores.mean.df,
                    trips.sub[,c(1:4)],
                    by = "trip_id")
 write.csv(pca.table, file = "pca.table.csv")
-# save(list(pca.table,eig.summary.df,
-#           pca.scores.list, pca.eigens.list), file = "pca.data.RData")
-# 
+save(list= c("pca.table", "eig.summary.df"), file = "pca.data.RData")
+# ?save
 # 
 colMeans(pca.scores.mean.df[c(2:21)])
 
 
 # 8. Determine number of clusters and cluster ID -----
+# If resume here:
+load("pca.data.RData")
+
 
 # To run adapted NbClust function
 source("NbClust_new_d_index_only.R")
@@ -495,22 +503,25 @@ source("NbClust_new_d_index_only.R")
   #inertia values (2-20 clusters)
   # Scree plot
   plot(res[[1]]~c(2:23), type = "b")
-  abline(v=8)
+  abline(v=7)
   
   df.inertia <- cbind.data.frame(res[[1]], c(2:23))
   names(df.inertia) <- c("inertia", "n_clust")
+  df.inertia$col <- c(rep("dark grey",6), rep("light grey",16))
   
-  
-  ggplot(df.inertia, aes(y = inertia, x = n_clust)) +
-    geom_bar(stat="identity")+
+  # ?geom_bar
+ inertia.plot <-  ggplot(df.inertia, aes(y = inertia, x = n_clust)) +
+    geom_bar(aes(fill = col), stat="identity")+
+    scale_fill_manual(values=c("grey10", "grey90")) +
     labs(list(x = "Number of clusters",
-            y = "Inertia gain"))
+            y = "Inertia gain")) +
+    guides(fill=FALSE)
             
-  ggsave(filename = "inertia_gain_clusters.svg", width = 4, height = 4,
+  ggsave(inertia.plot, filename = "inertia_gain_clusters.svg", width = 4, height = 4,
          units = "in")
-  ggsave(filename = "inertia_gain_clusters.png", width = 4, height = 4,
+  ggsave(inertia.plot, filename = "inertia_gain_clusters.png", width = 4, height = 4,
          units = "in")
-  ggsave(filename = "inertia_gain_clusters.pdf", width = 4, height = 4,
+  ggsave(inertia.plot, filename = "inertia_gain_clusters.pdf", width = 4, height = 4,
          units = "in")
   
     # Change in inertia thing
@@ -519,23 +530,31 @@ source("NbClust_new_d_index_only.R")
 
   
   
-  df.inertia2 <- cbind.data.frame(res[[2]][2:21], c(2:21))
+  df.inertia2 <- cbind.data.frame(res[[2]][2:21], c(3:22))
   names(df.inertia2) <- c("inertia", "n_clust")
   
   
-  ggplot(df.inertia2, aes(y = inertia, x = n_clust)) +
+  inertia.change <- ggplot(df.inertia2, aes(y = inertia, x = n_clust)) +
     geom_line()+
     labs(list(x = "Number of clusters",
               y = "Rate of change of inertia"))
   
-  ggsave(filename = "inertia_gain_clusters_rate.svg", width = 4, height = 4,
+  ggsave(inertia.change, filename = "inertia_gain_clusters_rate.svg", width = 4, height = 4,
          units = "in")
-  ggsave(filename = "inertia_gain_clusters_rate.png", width = 4, height = 4,
+  ggsave(inertia.change, filename = "inertia_gain_clusters_rate.png", width = 4, height = 4,
          units = "in")
-  ggsave(filename = "inertia_gain_clusters_rate.pdf", width = 4, height = 4,
+  ggsave(inertia.change, filename = "inertia_gain_clusters_rate.pdf", width = 4, height = 4,
          units = "in")
   
+  # Combine the two plots (cowplot function)
+  g <- plot_grid(inertia.plot, inertia.change)
   
+  ggsave(g, filename = "inertia_change_combined.png", width = 8, height = 4,
+         units = "in")
+  ggsave(g, filename = "inertia_change_combined.pdf", width = 8, height = 4,
+         units = "in")
+  ggsave(g, filename = "inertia_change_combined.svg", width = 8, height = 4,
+         units = "in")
   
   # Indicates two optima, one of 4 clusters, and the next at 8 clusters, beyond this inertia gain is small
   # and no clear cut-off
@@ -560,6 +579,15 @@ source("NbClust_new_d_index_only.R")
   
   # What cluster (of 8) are each trip in?
   memb <- cutree(hc, k = 7)
+  
+  # Re-label clusters (to get in logical order)
+  memb.new <- memb
+  memb.new[memb == 1] <- 7
+  memb.new[memb == 2] <- 5
+  memb.new[memb == 5] <- 2
+  memb.new[memb == 6] <- 1
+  memb.new[memb == 7] <- 6
+  
 #   
 #   memb <- cutree(hc, h = 4)
 #   max(memb)
@@ -567,35 +595,44 @@ source("NbClust_new_d_index_only.R")
 #   
 #   ?cutree
 #   
-  # 7 Cluster centres
-    cent <- NULL
-    for(k in 1:max(memb)){
-      cent <- rbind(cent, colMeans(pca.table[,c(2:6)][memb == k, , drop = FALSE]))
-    }
-  
-
-    # Dendrogram for cluster centres only
-    hc_8 <- hclust(dist(cent,
-                      method = "euclidean"),  "ward.D2")
-    # ?hclust
-    plot(hc_8)
+#   # 7 Cluster centres
+#     cent <- NULL
+#     for(k in 1:max(memb)){
+#       cent <- rbind(cent, colMeans(pca.table[,c(2:6)][memb == k, , drop = FALSE]))
+#     }
+#   
+# 
+#     # Dendrogram for cluster centres only
+#     hc_8 <- hclust(dist(cent,
+#                       method = "euclidean"),  "ward.D2")
+#     # ?hclust
+#     plot(hc_8)
     
     # See cluster distribution by species
-    table(memb,pca.table$species)
+    table(memb.new,
+          pca.table$species)
     
     
     
     # Output labelled trip table
     
-    pca.table.sort <- pca.table[order(pca.table$trip_id),]
+    pca.table.sort <- pca.table[order(as.numeric(as.character(pca.table$trip_id))),]
     trips.sub.sort <- trips.sub[order(trips.sub$trip_id),]
+   
     
+    all(trips.sub.sort$trip_id == as.numeric(as.character(pca.table.sort$trip_id)))
     
     clust.tab <- cbind.data.frame(pca.table.sort, trips.sub.sort,
-                                  memb)
-
+                                  memb.new[order(as.numeric(as.character(pca.table$trip_id)))])
+    names(clust.tab)
+    
+    names(clust.tab)[91] <- "cluster"
+    clust.tab$cluster_fac <- as.factor(clust.tab$cluster)
+    table(clust.tab$cluster,clust.tab$cluster_fac)
+    levels(clust.tab$cluster_fac)
+    
     # Check data are aligned correctly
-    test.x <- (clust.tab[,c(1)]==as.numeric(clust.tab[,c(15)]))
+    test.x <- (clust.tab[,c(1)]==as.numeric(clust.tab[,c(25)]))
     all(test.x)  
 
     save(clust.tab, file = "cluster_data_detailed.RData")
@@ -614,8 +651,11 @@ source("NbClust_new_d_index_only.R")
     library(cowplot)
    
     
-    clust.tab$cluster <- as.factor(clust.tab$memb)
-    # summary(clust.tab$cluster)
+#     clust.tab$cluster <- as.factor(clust.tab$memb)
+#     
+#     clust.tab$cluster[1:10]
+#     clust.tab$memb[1:10]
+#     # summary(clust.tab$cluster)
     # Ref: John W Emerson, Walton A Green, Barret Schloerke, Jason Crowley, Dianne Cook, Heike Hofmann, Hadley Wickham. The Generalized Pairs Plot. Journal of Computational and Graphical Statistics, vol. 22, no. 1, pp. 79-91, 2012.
     
     # Overwite default ggplot function with additional pallete
@@ -623,53 +663,52 @@ source("NbClust_new_d_index_only.R")
     
     
     
-   
+   summary(clust.tab$cluster_fac)
     
-    p <- ggpairs(clust.tab, mapping = aes(color = cluster, alpha = 0.5),
+    p <- ggpairs(clust.tab, mapping = aes(color = cluster_fac, alpha = 0.5),
                  columns = c(2:6),
-                 upper=list(continuous='blank'),
-                 legends=TRUE) 
+                 upper=list(continuous='blank')) 
       
     p
     # ?ggpairs
     
     
-      # Add legend, though to one plot only from:
-    # http://stackoverflow.com/questions/22945702/how-to-add-an-external-legend-to-ggpairs
-      colIdx <- c(3,5,6,7)
+#       # Add legend, though to one plot only from:
+#     # http://stackoverflow.com/questions/22945702/how-to-add-an-external-legend-to-ggpairs
+#       colIdx <- c(3,5,6,7)
+#       
+#       for (i in 1:length(colIdx)) {
+#         
+#         # Address only the diagonal elements
+#         # Get plot out of matrix
+#         inner <- getPlot(p, i, i);
+#         
+#         # Add any ggplot2 settings you want (blank grid here)
+#         inner <- inner + theme(panel.grid = element_blank()) +
+#           theme(axis.text.x = element_blank())
+#         
+#         # Put it back into the matrix
+#         p <- putPlot(p, inner, i, i)
+#         
+#         for (j in 1:length(colIdx)){
+#           if((i==1 & j==1)){
+#             
+#             # Move legend right
+#             inner <- getPlot(p, i, j)
+#             inner <- inner + theme(legend.position=c(length(colIdx)-0.25,0.50)) 
+#             p <- putPlot(p, inner, i, j)
+#           }
+#           else{
+#             
+#             # Delete legend
+#             inner <- getPlot(p, i, j)
+#             inner <- inner + theme(legend.position="none")
+#             p <- putPlot(p, inner, i, j)
+#           }
+#         }
+#       }
       
-      for (i in 1:length(colIdx)) {
-        
-        # Address only the diagonal elements
-        # Get plot out of matrix
-        inner <- getPlot(p, i, i);
-        
-        # Add any ggplot2 settings you want (blank grid here)
-        inner <- inner + theme(panel.grid = element_blank()) +
-          theme(axis.text.x = element_blank())
-        
-        # Put it back into the matrix
-        p <- putPlot(p, inner, i, i)
-        
-        for (j in 1:length(colIdx)){
-          if((i==1 & j==1)){
-            
-            # Move legend right
-            inner <- getPlot(p, i, j)
-            inner <- inner + theme(legend.position=c(length(colIdx)-0.25,0.50)) 
-            p <- putPlot(p, inner, i, j)
-          }
-          else{
-            
-            # Delete legend
-            inner <- getPlot(p, i, j)
-            inner <- inner + theme(legend.position="none")
-            p <- putPlot(p, inner, i, j)
-          }
-        }
-      }
-      
-    p
+    # p
     
     
     ggsave(p, file = "pca_clusters.svg", width = 10, height = 10, units = "in")
@@ -681,7 +720,7 @@ source("NbClust_new_d_index_only.R")
     
     # 10b. Cladogram thing -------
     # Read in PCA table
-    pca.table <- read.csv("pca.table.csv")
+    # pca.table <- read.csv("pca.table.csv")
     
     # install.packages("dendextend")
     # Package for extended options for dendrograms
@@ -726,9 +765,18 @@ source("NbClust_new_d_index_only.R")
     # rect.hclust(hc, k = 4, border = "blue")
     rect.hclust(hc, k = 7, border = "red")
     
-    # What cluster (of 7) are each trip in?
+#     # What cluster (of 7) are each trip in?
     memb <- cutree(hc, k = 7)
-    # ?cutree
+head(memb)
+head(clust.tab$cluster)  
+clust.tab$memb.2 <- memb
+
+all(as.numeric(as.character(clust.tab$cluster)) == clust.tab$memb.2)
+    
+table(clust.tab$cluster, clust.tab$memb.2)
+
+#     # ?cutree
+#     
     # make as dendrogram
     dend <- as.dendrogram(hc)
     
@@ -756,7 +804,7 @@ source("NbClust_new_d_index_only.R")
     # Get 7 colours
     col.7 <- gg_color_hue(7)
     
-    levels(clust_dend)
+    # levels(clust_dend)
     
     # i <- 90
     
@@ -767,8 +815,10 @@ source("NbClust_new_d_index_only.R")
     colors_clust_dend <- colors_clust[order.dendrogram(dend)]
     clust_dend <- clust.tab$cluster[order.dendrogram(dend)]
     
+    
     dend1 <- color_branches(dend, k = 7,
-                            col = col.7[c(6,3,5,4,2,7,1)])
+                            col = col.7)
+                            # col = col.7[c(6,3,5,4,2,7,1)])
     # ?color_branches
     # ?color_branches
     # plot(c(1:7), pch = 12, col = col.7)
@@ -808,13 +858,6 @@ source("NbClust_new_d_index_only.R")
          line = 3.7)
     mtext("Foraging trips", side = 1,
           line = 5)
-    
-    
-    # ?axis
-#     legend("topright", legend =  c(
-#       "L. argentatus", "L. canus", "L. fuscus", "L. marinus"
-#     ), fill = spColors, bty = "n")
-    # ?colored_bars
     dev.off()
     
     pdf("dendrogram_colour_horizontal.pdf", width = 8, height = 8)
@@ -889,21 +932,33 @@ source("NbClust_new_d_index_only.R")
     tab.sp.t.p.t.df <- as.data.frame(tab.sp.t.p.t)
     str(tab.sp.t.p.t.df)
     names(tab.sp.t.p.t.df)[3] <- "perc_sp"
-    
+    tab.sp.t.p.t.df
     
     
     
     library(scales)
     
-    ggplot(tab.sp.t.p.t.df, aes( x= cluster, group = cluster)) + 
+   p <-  ggplot(tab.sp.t.p.t.df, aes( x= cluster, group = cluster)) + 
       geom_bar(aes(weight = perc_sp, fill = cluster)) + 
       facet_grid(~species) +
       scale_y_continuous(labels=percent) +
-      labs(y = "Proportion of trips (%)", fill="Cluster") +
+      labs(y = "Proportion of trips (%)",
+           x = "Cluster", fill="Cluster") +
       theme_new_rt
+   
+   p <- p + theme(legend.position='none') 
+   # Italicise species names
+   p <- p  + theme(strip.text = element_text(face = "italic"))
+   p
+    # ?ggsave
+    ggsave(p, file = "cluster.prop.sp.prop.png", width = 8, height = 4)
+    ggsave(p, file = "cluster.prop.sp.prop.svg", width = 8, height = 4)
+    ggsave(p, file = "cluster.prop.sp.prop.pdf", width = 8, height = 4)
+
     
-    ggsave("cluster.prop.sp.prop.png", width = 8, height = 4)
-    ggsave("cluster.prop.sp.prop.svg", width = 8, height = 4)
-    ggsave("cluster.prop.sp.prop.pdf", width = 8, height = 4)
+    
+# 11. Summarise clusters by differences/ similarities -----
+    
+    
     
   
