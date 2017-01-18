@@ -277,7 +277,7 @@ pca.var.contr.list <- list()
 # For reproducibility specify seed
 # ?set.seed
 set.seed(1)
-for(run_num in c(1:10000)){
+for(run_num in c(1:20000)){
   
   # all.equal(unlist(samples), unlist(samples2), unlist(samples3))
   
@@ -294,7 +294,7 @@ for(run_num in c(1:10000)){
   res.pca <- PCA(pca.df_only, ncp = 10,
                  ind.sup = sup.inds,
                  graph=FALSE)
-  
+  # ?PCA
 
   # Summarise variable loadings
   # str(res.pca)
@@ -337,6 +337,82 @@ pca.eigens.df <- bind_rows(pca.eigens.list)
 
 pca.scores.df <- bind_rows(pca.scores.list)
 
+
+# x <- as.data.frame(loadings)
+# loadings
+
+# Function to check each run for PC behaviour
+# To get repeatable PCs, and to avoid PCs being derived with both positive and negative directions
+test.fun <- function(x){
+  x <- as.data.frame(x)
+  t <- sum(
+    (x$Dim.1[12] < -0.1) +
+    (x$Dim.2[12] > 0.1) +
+    (x$Dim.1[16] > 0.1) +  
+    (x$Dim.2[16] < -0.1) +
+    (abs(x$Dim.4[11]) > 0.3) +
+    (abs(x$Dim.5[4]) > 0.3) +  
+    ((x$Dim.4[15]) < 0) +
+    ((x$Dim.5[4]) > 0.1)
+      
+  )==8
+  return(t)
+}
+
+a <- NULL
+for(i in 1:20000){
+ a[i] <- test.fun(pca.var.load.list[[i]])
+}
+summary(a)
+# 
+# test.fun(pca.var.load.list[[2]])
+# x <- as.data.frame(pca.var.load.list[[2]])
+# 
+# test <- lapply(pca.var.load.list, function(x){ test.fun(x[[1]])})
+# summary(test)
+
+
+# Select just those runs fulfilling criteria
+pca.scores.df.sub <- bind_rows(pca.scores.list[a])
+pca.eigens.df.sub <- bind_rows(pca.eigens.list[a])
+
+
+
+
+# Filter by loadings to get consistent PCs (i.e. same order etc)
+pca.var.load.list.df <- bind_rows(pca.var.load.list)
+
+str(pca.var.load.list[[1]])
+
+
+
+# test.mod <- lm(pca.scores.df$Dim.4~pca.scores.df$Dim.5)
+# ?filter
+# str(pca.score.df)
+
+s.test <- sample(unique(pca.scores.df.sub$trip_id),1)
+test.pc5 <- dplyr::filter(pca.scores.df.sub, trip_id == s.test)
+par(mfrow = c(2,3))
+hist(test.pc5$Dim.1)
+abline(v=c(median(test.pc5$Dim.1), mean(test.pc5$Dim.1)),
+       col = c("red", "blue"), lty = c(1, 2))
+hist(test.pc5$Dim.2)
+abline(v=c(median(test.pc5$Dim.2), mean(test.pc5$Dim.2)),
+       col = c("red", "blue"), lty = c(1, 2))
+hist(test.pc5$Dim.3)
+abline(v=c(median(test.pc5$Dim.3), mean(test.pc5$Dim.3)),
+       col = c("red", "blue"), lty = c(1, 2))
+hist(test.pc5$Dim.4)
+abline(v=c(median(test.pc5$Dim.4), mean(test.pc5$Dim.4)),
+       col = c("red", "blue"), lty = c(1, 2))
+hist(test.pc5$Dim.5)
+abline(v=c(median(test.pc5$Dim.5), mean(test.pc5$Dim.5)),
+       col = c("red", "blue"), lty = c(1, 2))
+# boxplot((test.pc5$Dim.5))
+#
+
+
+
 # ci05 <- function(x){
 #   return(sort(x)[50])
 # }
@@ -346,8 +422,8 @@ pca.scores.df <- bind_rows(pca.scores.list)
 # }
 
 # Mean contribution for variables
-contribution.means <- apply(simplify2array(pca.var.contr.list), c(1,2), mean)
-contribution.sd <- apply(simplify2array(pca.var.contr.list), c(1,2), sd)
+contribution.means <- apply(simplify2array(pca.var.contr.list[a]), c(1,2), mean)
+contribution.sd <- apply(simplify2array(pca.var.contr.list[a]), c(1,2), sd)
 # ?sd
 
 # contribution.05 <- apply(simplify2array(pca.var.contr.list), c(1,2), ci05)
@@ -358,9 +434,17 @@ x <- contribution.means/contribution.sd
 
 colSums(contribution.means)
 
+mean.abs <- function(x){
+  return(mean(abs(x)))
+}
+
 # Mean loading for variables
-loadings.means <- apply(simplify2array(pca.var.load.list), c(1,2), mean)
-loadings.sd <- apply(simplify2array(pca.var.load.list), c(1,2), sd)
+loadings.means <- apply(simplify2array(pca.var.load.list[a]), c(1,2), mean)
+loadings.sd <- apply(simplify2array(pca.var.load.list[a]), c(1,2), sd)
+loadings.means.abs <- apply(simplify2array(pca.var.load.list[a]), c(1,2), mean.abs)
+
+loadings.mean.dif <- loadings.means.abs- abs(loadings.means)
+
 # ?sd
 x <- loadings.means/loadings.sd
 
@@ -368,7 +452,7 @@ x <- loadings.means/loadings.sd
 
 summary.tab <- paste(trimws(format(round(loadings.means, 3), nsmall = 3),
                             which = "left"), " (",
-                     trimws(format(round(contribution.means, 0), nsmall = 1), which = c("left")),
+                     trimws(format(round(contribution.means, 1), nsmall = 1), which = c("left")),
                      ")", sep = "")
 summary.tab <- as.data.frame(matrix(summary.tab, ncol = 10))
 summary.tab$var <- row.names(loadings.means)
@@ -381,9 +465,16 @@ write.csv(summary.tab.export, file = "loading_contribution_pca.csv")
 # paste(".", format(round(contribution.means[3], 0), nsmall = 1), sep = "")
 # paste(".", format(round(contribution.means[2:3], 0), nsmall = 1), sep = "")
 
-hist(pca.eigens.df$cumulative.variance.percent[pca.eigens.df$pca == "Dim.5"])
-mean(pca.eigens.df$cumulative.variance.percent[pca.eigens.df$pca == "Dim.5"], na.rm = TRUE)
-sort(pca.eigens.df$cumulative.variance.percent[pca.eigens.df$pca == "Dim.5"])[c(500,5000,9500)]
+hist(pca.eigens.df.sub$cumulative.variance.percent[pca.eigens.df.sub$pca == "Dim.5"])
+mean(pca.eigens.df.sub$cumulative.variance.percent[pca.eigens.df.sub$pca == "Dim.5"], na.rm = TRUE)
+n <- nrow(pca.eigens.df.sub[pca.eigens.df.sub$pca == "Dim.5",])
+cum.per <- sort(pca.eigens.df.sub$cumulative.variance.percent[pca.eigens.df.sub$pca == "Dim.5"])
+cum.per[c(floor(c(n*0.05, n*0.5, n*0.95)))]
+
+# plot(sort(pca.eigens.df.sub$cumulative.variance.percent[pca.eigens.df.sub$pca == "Dim.5"]))
+
+# summary(is.na(pca.eigens.df.sub$cumulative.variance.percent[pca.eigens.df.sub$pca == "Dim.5"]))
+
 
 # plot density plot thing for eigenvalues
 theme_new <- theme_bw(base_size = 14, base_family = "serif") +
@@ -401,7 +492,7 @@ theme_new <- theme_bw(base_size = 14, base_family = "serif") +
 
 # str(pca.eigens.df)
 library(reshape2)
-plot.eig.df <- melt(pca.eigens.df, "pca", "eigenvalue")
+plot.eig.df <- melt(pca.eigens.df.sub, "pca", "eigenvalue")
 str(plot.eig.df)
 plot.eig.df$pca <- factor(plot.eig.df$pca, levels = unique(plot.eig.df$pca),
                           labels = c(1:10))
@@ -421,10 +512,10 @@ ggsave(filename = "pca_eigen_density.png", width = 4, height = 4,
 ggsave(filename = "pca_eigen_density.pdf", width = 4, height = 4,
        units = "in")
 
-str(pca.eigens.df)
-pca.eigens.df$pca <- factor(pca.eigens.df$pca, levels = unique(pca.eigens.df$pca),
+str(pca.eigens.df.sub)
+pca.eigens.df.sub$pca <- factor(pca.eigens.df.sub$pca, levels = unique(pca.eigens.df.sub$pca),
                           labels = c(1:10))
-eig.summary.df <- dplyr::summarise(group_by(pca.eigens.df,
+eig.summary.df <- dplyr::summarise(group_by(pca.eigens.df.sub,
                    pca),
           eigen_mean = mean(eigenvalue),
           eigen_median = median(eigenvalue),
@@ -438,14 +529,14 @@ eig.summary.df <- dplyr::summarise(group_by(pca.eigens.df,
 )
 write.csv(eig.summary.df, file = "pca_eigen_summary.csv")
 
-# Correlation between variables and components (just last run)
-dimdesc(res.pca, axes = 1:5, proba = 0.05)
+# # Correlation between variables and components (just last run)
+# dimdesc(res.pca, axes = 1:5, proba = 0.05)
 
 
-str(pca.scores.df)
+str(pca.scores.df.sub)
 
 # Get mean PCA components
-pca.scores.mean.df <- dplyr::summarise(group_by(pca.scores.df,
+pca.scores.mean.df <- dplyr::summarise(group_by(pca.scores.df.sub,
                                      trip_id),
                            pc1 = mean(Dim.1),
                            pc2 = mean(Dim.2),
@@ -468,7 +559,9 @@ pca.scores.mean.df <- dplyr::summarise(group_by(pca.scores.df,
                            pc9_SD = sd(Dim.9),
                            pc10_SD = sd(Dim.10)
 )
+
 # 
+dev.off()
 hist(pca.scores.mean.df$pc1_SD)
 hist(pca.scores.mean.df$pc2_SD)
 hist(pca.scores.mean.df$pc1)
@@ -556,8 +649,7 @@ source("NbClust_new_d_index_only.R")
   ggsave(g, filename = "inertia_change_combined.svg", width = 8, height = 4,
          units = "in")
   
-  # Indicates two optima, one of 4 clusters, and the next at 8 clusters, beyond this inertia gain is small
-  # and no clear cut-off
+  # Indicates one optima of 7 clusters
   
   
   
@@ -582,11 +674,15 @@ source("NbClust_new_d_index_only.R")
   
   # Re-label clusters (to get in logical order)
   memb.new <- memb
-  memb.new[memb == 1] <- 7
-  memb.new[memb == 2] <- 5
-  memb.new[memb == 5] <- 2
-  memb.new[memb == 6] <- 1
-  memb.new[memb == 7] <- 6
+  
+  
+  memb.new[memb == 1] <- 7  
+  memb.new[memb == 2] <- 5 
+  memb.new[memb == 3] <- 3 
+  memb.new[memb == 4] <- 1 
+  memb.new[memb == 5] <- 2 
+  memb.new[memb == 6] <- 4 
+  memb.new[memb == 7] <- 6 
   
 #   
 #   memb <- cutree(hc, h = 4)
@@ -651,17 +747,7 @@ source("NbClust_new_d_index_only.R")
     library(cowplot)
    
     
-#     clust.tab$cluster <- as.factor(clust.tab$memb)
-#     
-#     clust.tab$cluster[1:10]
-#     clust.tab$memb[1:10]
-#     # summary(clust.tab$cluster)
     # Ref: John W Emerson, Walton A Green, Barret Schloerke, Jason Crowley, Dianne Cook, Heike Hofmann, Hadley Wickham. The Generalized Pairs Plot. Journal of Computational and Graphical Statistics, vol. 22, no. 1, pp. 79-91, 2012.
-    
-    # Overwite default ggplot function with additional pallete
-    # scales <- scale_colour_brewer(type = 'qual') %+% scale_fill_brewer(type = 'qual')
-    
-    
     
    summary(clust.tab$cluster_fac)
     
@@ -671,44 +757,6 @@ source("NbClust_new_d_index_only.R")
       
     p
     # ?ggpairs
-    
-    
-#       # Add legend, though to one plot only from:
-#     # http://stackoverflow.com/questions/22945702/how-to-add-an-external-legend-to-ggpairs
-#       colIdx <- c(3,5,6,7)
-#       
-#       for (i in 1:length(colIdx)) {
-#         
-#         # Address only the diagonal elements
-#         # Get plot out of matrix
-#         inner <- getPlot(p, i, i);
-#         
-#         # Add any ggplot2 settings you want (blank grid here)
-#         inner <- inner + theme(panel.grid = element_blank()) +
-#           theme(axis.text.x = element_blank())
-#         
-#         # Put it back into the matrix
-#         p <- putPlot(p, inner, i, i)
-#         
-#         for (j in 1:length(colIdx)){
-#           if((i==1 & j==1)){
-#             
-#             # Move legend right
-#             inner <- getPlot(p, i, j)
-#             inner <- inner + theme(legend.position=c(length(colIdx)-0.25,0.50)) 
-#             p <- putPlot(p, inner, i, j)
-#           }
-#           else{
-#             
-#             # Delete legend
-#             inner <- getPlot(p, i, j)
-#             inner <- inner + theme(legend.position="none")
-#             p <- putPlot(p, inner, i, j)
-#           }
-#         }
-#       }
-      
-    # p
     
     
     ggsave(p, file = "pca_clusters.svg", width = 10, height = 10, units = "in")
@@ -774,7 +822,7 @@ clust.tab$memb.2 <- memb
 all(as.numeric(as.character(clust.tab$cluster)) == clust.tab$memb.2)
     
 table(clust.tab$cluster, clust.tab$memb.2)
-
+# ?table
 #     # ?cutree
 #     
     # make as dendrogram
@@ -841,7 +889,7 @@ table(clust.tab$cluster, clust.tab$memb.2)
     
     pdf("dendrogram_colour.pdf", width = 6, height = 6)
     svg("dendrogram_colour.svg", width = 6, height = 6)
-    png("dendrogram_colour3.png", width = 6, height = 6,
+    png("dendrogram_colour.png", width = 6, height = 6,
         units = "in",
         res = 600)
     
@@ -959,6 +1007,6 @@ table(clust.tab$cluster, clust.tab$memb.2)
     
 # 11. Summarise clusters by differences/ similarities -----
     
-    
+# See seppearte script file    
     
   
