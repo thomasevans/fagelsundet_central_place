@@ -129,7 +129,7 @@ gps.points <- filter(gps.points, latitude <62.5)
 
 
 # 4. Proportions -------
-tab.k.sp <- table(clust.out[,c("species","memb")])
+tab.k.sp <- table(clust.out[,c("species","cluster")])
 
 # 
 # Numbers
@@ -209,7 +209,7 @@ col.outs <- col.7
 
 
 # 6. Plot sepperate panels for each cluster -----
-clust.out$cluster <- clust.out$memb
+# clust.out$cluster <- clust.out$memb
 clusts <- sort(unique(clust.out$cluster))
 
 
@@ -223,7 +223,7 @@ png("cluster_maps_grid_detailed_test_alpha.png", width = 12, height = 12, units 
 par(mfrow=c(3,3))
 
 # Plot base map
-# i <- 2
+i <- 2
 # 
 par(mfrow=c(1,1))
 
@@ -243,6 +243,7 @@ map.base.fun(xlim = range(points.f$longitude),
              title.text = paste("Cluster: ", clusts[i]),
              col.out = col.outs[i])
 
+# plot(c(1:7),c(1:7), col = col.outs, pch = 20)
 
 
 # Map each trip in turn
@@ -346,6 +347,32 @@ legend(x = "topright",
 dev.off()
 
 
+# Legend for PCA plot:
+
+
+png("pca_clust_legend.png", width = 1, height = 3, units = "in",
+    res = 600)
+svg("pca_clust_legend.svg", width = 1, height = 3)
+# ?svg
+par( mar = c(0, 0, 0, 0))
+# ?plot
+plot(1:10,1:10,type = "n",
+     bty =  "n")
+# ?legend
+
+legend(title = "Cluster",
+       x = "topright",
+       legend = c(1:7),
+       col = "dark grey",
+       pt.bg = col.7,
+       lwd = 1,
+       lty = NA,
+       pch = 21,
+       pt.cex = 3.5,
+       bty = "n",
+       cex = 1.5)
+
+dev.off()
 
 #   
 
