@@ -41,3 +41,10 @@ pca.table.csv
 pca_eigen_summary.csv
 cluster_data.csv
 cluster_data_detailed.csv
+loading_contribution_pca.csv
+loading_contribution_pca.xlsx
+loading_contribution_pca2.csv
+pca.table2.csv
+pca_eigen_summary2.csv
+trips_cluster_by_species_table.txt
+var_summary.csv
