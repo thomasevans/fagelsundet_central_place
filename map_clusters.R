@@ -225,17 +225,29 @@ par(mfrow=c(3,3))
 # Plot base map
 i <- 2
 # 
+
+
 par(mfrow=c(1,1))
 
+
+# plot(c(1:4), col = addalpha(spColors, 0.6))
+
+
+sp.col.alpha <- addalpha(spColors, 0.25)
+sp <- sort(unique(clust.out$species))
+sp.col.alpha[clust.out$species[ix] == sp]
+
+# i <- 3
 for(i in 1:length(clusts)){
 #   
 
-  png(paste("cluster_maps_grid_detailed_test_alpha_clust_", clusts[i], ".png", sep = ""), width = 3, height = 3, units = "in",
+  png(paste("cluster_maps_grid_detailed_species_colour2_clust_", clusts[i], ".png", sep = ""), width = 3, height = 3, units = "in",
       res = 600)
 #   
 
 # clust.num <- i
 cluster.trips <- clust.out$trip_id[clust.out$cluster == clusts[i]]
+cluster.sp <- clust.out$species[clust.out$cluster == clusts[i]]
 points.f <- dplyr::filter(gps.points, trip_id %in% cluster.trips)
 
 map.base.fun(xlim = range(points.f$longitude),
@@ -243,15 +255,27 @@ map.base.fun(xlim = range(points.f$longitude),
              title.text = paste("Cluster: ", clusts[i]),
              col.out = col.outs[i])
 
+# x <- sort(points.f$latitude)
+# head(x)
+# plot(x)
+# tail(x)
+
 # plot(c(1:7),c(1:7), col = col.outs, pch = 20)
 
+# Randomize order that trips are drawn
+trip.df <- cbind.data.frame(cluster.trips, cluster.sp)
+
+trip.df <- trip.df[sample(c(1:nrow(trip.df)), nrow(trip.df)),]
 
 # Map each trip in turn
 # ix <- 1
 for(ix in 1:length(cluster.trips)){
   # cluster.trips[i] %in% gps.points.ltraj.300.df$trip_id
   
-  gps.sub <- filter(points.f, trip_id == cluster.trips[ix])
+  
+  
+  
+  gps.sub <- filter(points.f, trip_id == trip.df$cluster.trips[ix])
   
   # sp.col <- addalpha(col.outs[specs == clust.out$species[ix]
                               # ], alpha = 0.15)
@@ -262,10 +286,10 @@ for(ix in 1:length(cluster.trips)){
   n <- length(gps.sub$long)
   segments(gps.sub$long[-1], gps.sub$lat[-1],
            gps.sub$long[1:n-1], gps.sub$lat[1:n-1],
-           # col = "black", lty = 1, lwd = 0.4)
-           col = addalpha("black", 0.12), lty = 1, lwd = 0.8)
-           # col = sp.col, lty = 1, lwd = 1)
-  
+
+           col = sp.col.alpha[trip.df$cluster.sp[ix] == sp], lty = 1, lwd = 0.8)
+          # col = addalpha("black", 0.12), lty = 1, lwd = 0.8)
+
 
 
 }
@@ -427,8 +451,7 @@ par(mar=c(3, 3, 0.5, 0.5) + 0.1)
   sp.col.alpha <- addalpha(spColors, 0.3)
 
   sp <- sort(unique(clust.out$species))
-  
-         
+
   
   clust.out <- clust.out[sample(c(1:nrow(clust.out))),]
   # ?sample
