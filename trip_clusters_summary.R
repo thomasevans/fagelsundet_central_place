@@ -247,3 +247,78 @@ write.csv(all.x, file = "var_summary.csv")
 
 # Statistics to compare -----
 
+# Stats
+library(lme4)
+library(lmerTest)
+library(multcomp)
+
+names(clust.df)
+clust.df.stats <- clust.df
+
+clust.df.stats$cluster_fac <- as.factor(clust.df.stats$cluster_fac)
+clust.df.stats$ring_number <- as.factor(clust.df.stats$ring_number)
+clust.df.stats$species <- as.factor(clust.df.stats$species)
+
+levels(clust.df.stats$cluster_fac)
+levels(clust.df.stats$ring_number)
+levels(clust.df.stats$species)
+
+var.txt <- paste("log_coldist_max")
+
+
+test.var.fun <- function(var.txt = NA, data = clust.df.stats){
+  # Test example:
+  formular <- as.formula(paste(var.txt,"~ cluster_fac + (1|ring_number)", sep = ""))
+  mod.test <- lmer(formular, data = data)
+  # ?parse
+  # 
+  # summary(mod.test)
+  # 
+  # anova(mod.test, mod.test.int)
+  # 
+  # Uses Satterthwaite approximation, which is implemented in the lmerTest
+  # See: http://mindingthebrain.blogspot.se/2014/02/three-ways-to-get-parameter-specific-p.html
+  # Have to have lmerTest loaded after lme4
+  fact.sig <- anova(mod.test)
+  # str(fact.sig)
+  # f
+  f <- fact.sig$F.value
+  # p value
+  p <- fact.sig$'Pr(>F)'
+  
+  # # extract coefficients
+  # coefs <- data.frame(coef(summary(mod.test)))
+  # # get Satterthwaite-approximated degrees of freedom
+  # coefs$df.Satt <- coef(summary(mod.test))[, 3]
+  # # get approximate p-values
+  # coefs$p.Satt <- coef(summary(mod.test))[, 5]
+  # coefs
+  
+  # Post-hoc test, see: http://stats.stackexchange.com/questions/237512/how-to-perform-post-hoc-test-on-lmer-model
+  # uses multcomp package
+  post.hoc.mod <-summary(glht(mod.test, linfct = mcp(cluster_fac = "Tukey")), test = adjusted("holm"))
+  # Which groups are different?
+  ph <- post.hoc.mod$test$pvalues <0.05
+  
+  x <- list(f, p, ph)
+  names(x) <- c("F", "p", "p_groups")
+  x
+}
+
+test.var.fun("log_coldist_max")
+test.var.fun("sunrise.prox")
+
+vars.to.test <- c("sunrise.prox", "sunset.prox",  "solarnoon.prox",  
+                  "sunrise.prox.mid", "sunset.prox.mid",  "solarnoon.prox.mid",            
+                  "p_flight_logit",   "p_land_logit", "p_sea_logit", 
+                  "p_coast_logit",    "p_landfill_logit", "p_water_20m_logit",             
+                  "p_water_50m_logit", "log_coldist_max",  "log_col_dist_median"   ,        
+                  "log_duration_s",   "log_tortoisity",
+                  "pc1", "pc2",
+                  "pc3", "pc4", "pc5")
+
+test.ls <- list()
+
+for(i in 1:length(vars.to.test)){
+  test.ls[[i]] <- test.var.fun(var.txt = vars.to.test[i])
+}
