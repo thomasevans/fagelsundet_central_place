@@ -322,3 +322,439 @@ test.ls <- list()
 for(i in 1:length(vars.to.test)){
   test.ls[[i]] <- test.var.fun(var.txt = vars.to.test[i])
 }
+
+
+test.ls[[1]]
+
+
+
+
+# Diversity/ specialism index - Eveness - Hill numbers ------
+# Based on Jost, L. (2007). Partitioning Diversity into Independent Alpha and Beta Components. Ecology 88, 2427–2439.
+# Though most familiar in ecology for analysis of biodiversity, same measures may be used
+# to assess eveness/ diversity in other cases, here to look at the distribution of different
+# types of foraging trip within and between species. Thus providing a measure of generalism
+# /specialism, at the individual level (aka. alpha diversity) and the species level (
+# aka. beta diversity)
+
+
+# Load require package
+# install.packages("vegetarian")
+library(vegetarian)
+
+
+# Make a table of clusters per species
+clust.sp.table <- table(clust.df$species,clust.df$cluster_fac)
+
+
+clust.ind.hg.table <- table(clust.df$ring_number[clust.df$species == "Larus argentatus"],clust.df$cluster_fac[clust.df$species == "Larus argentatus"])
+
+clust.ind.gbbg.table <- table(clust.df$ring_number[clust.df$species == "Larus marinus"],clust.df$cluster_fac[clust.df$species == "Larus marinus"])
+
+clust.ind.cg.table <- table(clust.df$ring_number[clust.df$species == "Larus canus"],clust.df$cluster_fac[clust.df$species == "Larus canus"])
+
+clust.ind.lbbg.table <- table(clust.df$ring_number[clust.df$species == "Larus fuscus"],clust.df$cluster_fac[clust.df$species == "Larus fuscus"])
+
+
+
+# Apha diversity ---
+d(clust.ind.hg.table, lev = "alpha", boot = TRUE)
+d(clust.ind.cg.table, lev = "alpha", boot = TRUE)
+d(clust.ind.lbbg.table, lev = "alpha", boot = TRUE)
+d(clust.ind.gbbg.table, lev = "alpha", boot = TRUE)
+
+# Beta diversity ----
+d(clust.ind.hg.table, lev = "beta", boot = TRUE)
+d(clust.ind.cg.table, lev = "beta", boot = TRUE)
+d(clust.ind.lbbg.table, lev = "beta", boot = TRUE)
+d(clust.ind.gbbg.table, lev = "beta", boot = TRUE)
+
+
+# Gamma diversity ----
+d(clust.ind.hg.table, lev = "gamma", boot = TRUE)
+d(clust.ind.cg.table, lev = "gamma", boot = TRUE)
+d(clust.ind.lbbg.table, lev = "gamma", boot = TRUE)
+d(clust.ind.gbbg.table, lev = "gamma", boot = TRUE)
+
+
+# MacArthur's homogeneity measure (standardized) -----
+M.homog(clust.ind.hg.table, std = TRUE, boot = TRUE)
+M.homog(clust.ind.cg.table, std = TRUE, boot = TRUE)
+M.homog(clust.ind.lbbg.table, std = TRUE, boot = TRUE)
+M.homog(clust.ind.gbbg.table, std = TRUE, boot = TRUE)
+
+
+# Overlaps ------
+# HG vs CG
+x <- sim.groups(clust.ind.hg.table,
+           clust.ind.cg.table,
+           q = 1,
+           labels=TRUE,boot=FALSE)
+# HG
+mean(x[[1]])
+sd(x[[1]])
+
+# CG
+mean(x[[2]])
+sd(x[[2]])
+
+# HG vs CG
+mean(x[[3]])
+sd(x[[3]])
+
+# HGself vs. HG/CG
+t.test(x[[1]],x[[3]])
+
+
+# HG vs LBBGG
+x <- sim.groups(clust.ind.hg.table,
+                clust.ind.lbbg.table,
+                q = 1,
+                labels=TRUE,boot=FALSE)
+# HG
+mean(x[[1]])
+sd(x[[1]])
+
+# LBBG
+mean(x[[2]])
+sd(x[[2]])
+
+# HG vs LBBG
+mean(x[[3]])
+sd(x[[3]])
+
+# HGself vs. HG/LBBG
+t.test(x[[1]],x[[3]])
+
+# HG vs GBBG
+x <- sim.groups(clust.ind.hg.table,
+                clust.ind.gbbg.table,
+                q = 1,
+                labels=TRUE,boot=FALSE)
+# HG
+mean(x[[1]])
+sd(x[[1]])
+
+# GBBG
+mean(x[[2]])
+sd(x[[2]])
+
+# HG vs GBBG
+mean(x[[3]])
+sd(x[[3]])
+
+# HGself vs. HG/GBBG
+t.test(x[[1]],x[[3]])
+
+mean(c(0.57,0.42,0.72))
+
+
+# CG vs LBBGG
+x <- sim.groups(clust.ind.cg.table,
+                clust.ind.lbbg.table,
+                q = 1,
+                labels=TRUE,boot=FALSE)
+# CG
+mean(x[[1]])
+sd(x[[1]])
+
+# LBBG
+mean(x[[2]])
+sd(x[[2]])
+
+# CG vs LBBG
+mean(x[[3]])
+sd(x[[3]])
+
+# CGself vs. CG/LBBG
+t.test(x[[1]],x[[3]])
+
+# CG vs GBBGG
+x <- sim.groups(clust.ind.cg.table,
+                clust.ind.gbbg.table,
+                q = 1,
+                labels=TRUE,boot=FALSE)
+# CG
+mean(x[[1]])
+sd(x[[1]])
+
+# GBBG
+mean(x[[2]])
+sd(x[[2]])
+
+# CG vs GBBG
+mean(x[[3]])
+sd(x[[3]])
+
+# CGself vs. CG/GBBG
+t.test(x[[1]],x[[3]])
+
+
+
+# CG vs HG
+x <- sim.groups(clust.ind.cg.table,
+                clust.ind.hg.table,
+                q = 1,
+                labels=TRUE,boot=FALSE)
+# CG
+mean(x[[1]])
+sd(x[[1]])
+
+# CG
+mean(x[[2]])
+sd(x[[2]])
+
+# CG vs CG
+mean(x[[3]])
+sd(x[[3]])
+
+# CGself vs. CG/CG
+t.test(x[[1]],x[[3]])
+
+mean(0.57,0.54,0.46)
+t.test(c(0.57,0.54,0.46), x[[1]])
+
+# LBBG vs GBBGG
+x <- sim.groups(clust.ind.lbbg.table,
+                clust.ind.gbbg.table,
+                q = 1,
+                labels=TRUE,boot=FALSE)
+# LBBG
+mean(x[[1]])
+sd(x[[1]])
+
+# GBBG
+mean(x[[2]])
+sd(x[[2]])
+
+# LBBG vs GBBG
+mean(x[[3]])
+sd(x[[3]])
+
+# CGself vs. LBBG/GBBG
+t.test(x[[1]],x[[3]])
+
+
+
+# LBBG vs CG
+x <- sim.groups(clust.ind.lbbg.table,
+                clust.ind.cg.table,
+                q = 1,
+                labels=TRUE,boot=FALSE)
+# LBBG
+mean(x[[1]])
+sd(x[[1]])
+
+# CG
+mean(x[[2]])
+sd(x[[2]])
+
+# LBBG vs CG
+mean(x[[3]])
+sd(x[[3]])
+
+# CGself vs. LBBG/CG
+t.test(x[[1]],x[[3]])
+
+
+
+
+# LBBG vs HG
+x <- sim.groups(clust.ind.lbbg.table,
+                clust.ind.hg.table,
+                q = 1,
+                labels=TRUE,boot=FALSE)
+# LBBG
+mean(x[[1]])
+sd(x[[1]])
+
+# HG
+mean(x[[2]])
+sd(x[[2]])
+
+# LBBG vs HG
+mean(x[[3]])
+sd(x[[3]])
+
+# CGself vs. LBBG/HG
+t.test(x[[1]],x[[3]])
+
+mean(0.42,0.54,0.27)
+
+
+
+
+# GBBG vs HG
+x <- sim.groups(clust.ind.gbbg.table,
+                clust.ind.hg.table,
+                q = 1,
+                labels=TRUE,boot=FALSE)
+# GBBG
+mean(x[[1]])
+sd(x[[1]])
+
+# HG
+mean(x[[2]])
+sd(x[[2]])
+
+# GBBG vs HG
+mean(x[[3]])
+sd(x[[3]])
+
+# CGself vs. GBBG/HG
+t.test(x[[1]],x[[3]])
+
+# mean(0.42,0.54,0.27)
+
+
+
+# GBBG vs CG
+x <- sim.groups(clust.ind.gbbg.table,
+                clust.ind.cg.table,
+                q = 1,
+                labels=TRUE,boot=FALSE)
+# GBBG
+mean(x[[1]])
+sd(x[[1]])
+
+# CG
+mean(x[[2]])
+sd(x[[2]])
+
+# GBBG vs CG
+mean(x[[3]])
+sd(x[[3]])
+
+# CGself vs. GBBG/CG
+t.test(x[[1]],x[[3]])
+
+
+
+# GBBG vs LBBG
+x <- sim.groups(clust.ind.gbbg.table,
+                clust.ind.lbbg.table,
+                q = 1,
+                labels=TRUE,boot=FALSE)
+# GBBG
+mean(x[[1]])
+sd(x[[1]])
+
+# LBBG
+mean(x[[2]])
+sd(x[[2]])
+
+# GBBG vs LBBG
+mean(x[[3]])
+sd(x[[3]])
+
+# CGself vs. GBBG/LBBG
+t.test(x[[1]],x[[3]])
+
+mean(c(0.72,0.46,0.27))
+
+mean(c(0.57,0.54,0.46))
+
+mean(c(0.57,0.42,0.72))
+
+#
+
+
+
+
+
+
+
+
+# 'Community overlap'
+# How similar are species in the clusters that their foraging trips belong to?
+sim.table(as.matrix(clust.sp.table))
+
+?sim.groups
+data(simesants)
+sim.groups(simesants[1:3,],simesants[4:5,],labels=TRUE,boot=FALSE)
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+# To what extent do GBBG and HG differ from each other, at the individual level?
+# Outputs within species pair-wise similarity, and between species pair-wise similarities
+x <-sim.groups(clust.ind.hg.table,
+           clust.ind.gbbg.table,
+           q = 1,
+           labels=TRUE,boot=FALSE)
+
+# HG vs LBBG
+x <- sim.groups(clust.ind.hg.table,
+           clust.ind.lbbg.table,
+           q = 1,
+           labels=TRUE,boot=FALSE)
+str(x)
+mean(unlist(x[[1]]))
+mean(unlist(x[[2]]))
+mean(unlist(x[[3]]))
+
+d(clust.ind.hg.table)
+
+d(clust.ind.gbbg.table)
+
+d(clust.ind.lbbg.table)
+
+d(clust.ind.cg.table)
+bootstrap(clust.ind.cg.table, func=d)
+bootstrap(clust.ind.gbbg.table, func=d)
+bootstrap(clust.ind.lbbg.table, func=d)
+bootstrap(clust.ind.hg.table, func=d)
+
+
+# Alpha
+d(clust.ind.hg.table, lev = "alpha")
+M.homog(clust.ind.hg.table, std = TRUE, boot = TRUE)
+
+# Beta
+d(clust.ind.hg.table, lev = "beta")
+
+# Gamma
+d(clust.ind.hg.table, lev = "gamma")
+
+# Alpha
+d(clust.ind.gbbg.table, lev = "alpha")
+M.homog(clust.ind.gbbg.table, std = TRUE, boot = TRUE)
+
+# Beta
+d(clust.ind.gbbg.table, lev = "beta")
+
+
+# Alpha
+d(clust.ind.lbbg.table, lev = "alpha")
+M.homog(clust.ind.lbbg.table, std = TRUE, boot = TRUE)
+
+# Beta
+d(clust.ind.lbbg.table, lev = "beta")
+
+# Gamma
+d(clust.ind.lbbg.table, lev = "gamma")
+
+
+# Alpha
+d(clust.ind.cg.table, lev = "alpha")
+M.homog(clust.ind.cg.table, std = TRUE, boot = TRUE)
+
+
+# Beta
+d(clust.ind.cg.table, lev = "beta")
+
