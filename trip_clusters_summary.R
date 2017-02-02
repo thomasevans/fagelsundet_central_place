@@ -660,3 +660,137 @@ mean(c(0.57,0.42,0.72))
 
 
 
+
+# Make plot of trip foraging times --------
+library(dplyr)
+str(clust.df)
+
+clust.df$solar_time_start <- clust.df$solarnoon_after_h+12
+range(clust.df$solar_time_start)
+# Sort dataframe by cluster and start time
+clust.df.sort <- arrange(clust.df, desc(cluster_fac), desc(solar_time_start))
+
+# Give trips new index
+clust.df.sort$idx <- c(1:nrow(clust.df.sort))
+clust.df.sort$duration_h <- clust.df.sort$duration_s/60/60
+clust.df.sort$solar_time_end <- (clust.df.sort$solar_time_start + clust.df.sort$duration_h)
+range(clust.df.sort$solar_time_end)
+
+
+plot(clust.df.sort$idx~clust.df.sort$solar_time_start,
+     col = as.numeric(clust.df.sort$cluster_fac),
+     xlim = c(0,48))
+segments(clust.df.sort$solar_time_start,
+         clust.df.sort$idx,
+         clust.df.sort$solar_time_end ,
+         clust.df.sort$idx,
+         col = as.numeric(as.factor(clust.df.sort$species)))
+
+
+
+# Calculate mean sunrise and sunset times (solar time)
+sr_t_b4_noon <- clust.df.sort$solarnoon - clust.df.sort$sunrise
+sr_h <- 12-mean(as.numeric(sr_t_b4_noon))
+
+ss_t_aft_noon <- clust.df.sort$sunset - clust.df.sort$solarnoon + 12
+ss_h <- mean(as.numeric(ss_t_aft_noon))
+
+# ggplot implementation-----
+library(ggplot2)
+library(cowplot)
+
+# Colour by clusters
+gg_color_hue <- function(n) {
+  hues = seq(15, 375, length = n + 1)
+  hcl(h = hues, l = 65, c = 100)[1:n]
+}
+
+
+
+# Themes etc for ggplot figures
+theme_new <- theme_bw(base_size = 14, base_family = "serif") +
+  theme(legend.position = "none",
+        legend.justification = c(1, 1),
+        legend.key.size =   unit(2, "lines"),
+        legend.key = element_rect(colour =NA),
+        legend.text = element_text(size = 12, face = "italic"),
+        axis.text = element_text(size = 14),
+        axis.title = element_text(size = 14),
+        legend.text.align = 0,
+        # legend.text = element_text(colour="blue", size = 16, face = "bold")
+        legend.key.width = unit(1, "lines"),
+        legend.title = element_blank()
+  )
+
+# Get 7 colours
+col.7 <- gg_color_hue(7)
+
+# 4 Colours for species:
+# From: mkweb.bcgsc.ca
+spColors <- c("#0072b2",  "#d55e00",
+              "#009e73", "#cc79a7")
+
+# Set up plot with night and midday indicated
+p <- ggplot(clust.df.sort, aes(x = solar_time_start,
+                               y = idx, col = species)) +
+  geom_rect(aes(xmin=-Inf, xmax=sr_h, ymin=-Inf, ymax=Inf,
+                col = NA),
+            col = "black", alpha = 0.1
+            ) +
+  geom_rect(aes(xmin=ss_h, xmax=sr_h+24, ymin=-Inf, ymax=Inf),
+            col = "black", alpha = 0.1) +
+  geom_rect(aes(xmin=ss_h+24, xmax=+Inf, ymin=-Inf, ymax=Inf),
+            col = "black", alpha = 0.1) +
+  geom_vline(xintercept = c(12,36), alpha = 0.6, size = 2, col = "orange") +
+  scale_colour_manual(name = "Species",values = spColors)
+p
+# ?geom_rect
+
+# add clusters indicators
+clust.mins <- clust.max <- NULL
+for(i in 1:7){
+  clust.mins[i] <- min(clust.df.sort$idx[clust.df.sort$cluster_fac == i])
+  clust.max[i] <- max(clust.df.sort$idx[clust.df.sort$cluster_fac == i])
+}
+dummy.df <- data.frame(clust.mins, clust.max, col.7,
+                       xmin = -Inf, xmax = 0,
+                       solar_time_start = 0,
+                       idx = 0,
+                       species = NA)
+
+p <- p +
+  geom_rect(data= dummy.df, aes(xmin=xmin, xmax=xmax,
+                ymin=clust.mins,
+                ymax=clust.max,
+                fill = col.7),
+            col = "white",
+            show.legend = FALSE
+            ) +
+  annotate("text",
+           x = rep(-1.5,7), y = clust.max -30 ,
+           label = paste(c(1:7)),
+           col = "white")
+# ?annotate
+# p
+# ?geom_rect
+# sp <- sort(unique(clust.df.sort$species))
+# spColors[clust.df.sort$species[i] == sp]
+
+p <- p +geom_segment(aes(xend = solar_time_end, yend = idx
+                   ), alpha = 0.6, size = 0.3, lineend = "butt")
+# ?geom_segment
+
+p <- p +scale_x_continuous(expand = c(0, 0), limits = c(-3,48),
+                           breaks=seq(0,48,6),
+                           labels = c(seq(0,18,6),seq(0,18,6),24)) +
+        scale_y_continuous(expand = c(0, 0),
+                           labels = NULL)
+p <- p + theme_new
+p <- p +   labs(y = "Cluster", x="Time (local solar)") 
+
+ggsave(plot = p, filename = "cluster_time_of_day.png", width = 7, height = 5)
+ggsave(plot = p, filename = "cluster_time_of_day.svg", width = 7, height = 5)
+ggsave(plot = p, filename = "cluster_time_of_day.pdf", width = 7, height = 5)
+
+# ?scale_x_continuous
+# ?ggsave
