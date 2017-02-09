@@ -794,3 +794,63 @@ ggsave(plot = p, filename = "cluster_time_of_day.pdf", width = 7, height = 5)
 
 # ?scale_x_continuous
 # ?ggsave
+
+
+
+# Plot of PCs ------
+# See fig 3 in: 
+#   Conomos, M.P., Laurie, C.A., Stilp, A.M., Gogarten, S.M., McHugh, C.P., Nelson, S.C., Sofer, T., Fernández-Rhodes, L., Justice, A.E., Graff, M., et al. (2016). Genetic Diversity and Association Studies in US Hispanic/Latino Populations: Applications in the Hispanic Community Health Study/Study of Latinos. The American Journal of Human Genetics 98, 165–184.
+
+
+
+# Themes etc for ggplot figures
+theme_new_top_legend <- theme_bw(base_size = 14, base_family = "serif") +
+  theme(legend.position = "right",
+        legend.justification = c(1, 1),
+        legend.key.size =   unit(2, "lines"),
+        legend.key = element_rect(colour =NA),
+        legend.text = element_text(size = 12, face = "italic"),
+        axis.text = element_text(size = 14),
+        axis.title = element_text(size = 14),
+        legend.text.align = 0,
+        # legend.text = element_text(colour="blue", size = 16, face = "bold")
+        legend.key.width = unit(1, "lines"),
+        legend.title = element_blank()
+  )
+
+# Prepare DF
+library(reshape2)
+plot.df <- melt(clust.tab[,c("pc1", "pc2", "pc3", "pc4", "pc5", "pc6", "pc7",
+                             "pc8", "pc10", "trip_id", "cluster")],
+                id.vars = c("trip_id", "cluster"))
+plot.df <- melt(clust.tab[,c("pc1", "pc2", "pc3", "pc4", "pc5", "trip_id", "cluster")],
+                id.vars = c("trip_id", "cluster"))
+str(plot.df)
+
+ggplot(plot.df, aes(variable, value, group = trip_id, colour = as.factor(cluster))) +
+  geom_path(alpha = 0.2, size = 0.3) +
+  theme_new_top_legend +
+  labs(y = "Foraging trip PC score", x="Principle Component (pc)") +
+  guides(colour = guide_legend(override.aes = list(alpha=1), 
+         title="Clusters"))
+# ?geom_path
+ggsave("clusters_pcs_parallel_plot.svg", width = 5, height = 3)
+ggsave("clusters_pcs_parallel_plot.png", width = 5, height = 3)
+ggsave("clusters_pcs_parallel_plot.pdf", width = 5, height = 3)
+
+# 
+# # Set up plot with night and midday indicated
+# p <- ggplot(clust.df, aes(x = solar_time_start,
+#                                y = idx, col = species)) +
+#   geom_rect(aes(xmin=-Inf, xmax=sr_h, ymin=-Inf, ymax=Inf,
+#                 col = NA),
+#             col = "black", alpha = 0.1
+#   ) +
+#   geom_rect(aes(xmin=ss_h, xmax=sr_h+24, ymin=-Inf, ymax=Inf),
+#             col = "black", alpha = 0.1) +
+#   geom_rect(aes(xmin=ss_h+24, xmax=+Inf, ymin=-Inf, ymax=Inf),
+#             col = "black", alpha = 0.1) +
+#   geom_vline(xintercept = c(12,36), alpha = 0.6, size = 2, col = "orange") +
+#   scale_colour_manual(name = "Species",values = spColors)
+# p
+# # ?geom_rect
