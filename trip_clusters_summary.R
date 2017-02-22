@@ -668,7 +668,9 @@ str(clust.df)
 clust.df$solar_time_start <- clust.df$solarnoon_after_h+12
 range(clust.df$solar_time_start)
 # Sort dataframe by cluster and start time
-clust.df.sort <- arrange(clust.df, desc(cluster_fac), desc(solar_time_start))
+clust.df.sort <- arrange(clust.df, desc(cluster_fac),desc(species),
+                         desc(solar_time_start)
+                         )
 
 # Give trips new index
 clust.df.sort$idx <- c(1:nrow(clust.df.sort))
@@ -788,9 +790,9 @@ p <- p +scale_x_continuous(expand = c(0, 0), limits = c(-3,48),
 p <- p + theme_new
 p <- p +   labs(y = "Cluster", x="Time (local solar)") 
 
-ggsave(plot = p, filename = "cluster_time_of_day.png", width = 7, height = 5)
-ggsave(plot = p, filename = "cluster_time_of_day.svg", width = 7, height = 5)
-ggsave(plot = p, filename = "cluster_time_of_day.pdf", width = 7, height = 5)
+ggsave(plot = p, filename = "cluster_time_of_day_narrow.png", width = 4, height = 6)
+ggsave(plot = p, filename = "cluster_time_of_day_narrow.svg", width = 4, height = 6)
+ggsave(plot = p, filename = "cluster_time_of_day_narrow.pdf", width = 4, height = 6)
 
 # ?scale_x_continuous
 # ?ggsave
