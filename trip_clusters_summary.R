@@ -856,3 +856,51 @@ ggsave("clusters_pcs_parallel_plot.pdf", width = 5, height = 3)
 #   scale_colour_manual(name = "Species",values = spColors)
 # p
 # # ?geom_rect
+
+
+
+# Individual summaries ---------
+
+# Clust.fac - combine with sex data
+
+
+
+
+# Load sex data
+sex.tab <- read.csv("simplified_sex_ring_number_only2.csv",
+                    header = TRUE)
+# sex.tab[duplicated(sex.tab$ring_number),]
+
+# Combine with long_trips dataframe
+clust.new <- inner_join(clust.df, sex.tab)
+nrow(clust.new)
+length(unique(clust.df$trip_id))
+
+unique(clust.df$ring_number)[
+  !(unique(clust.df$ring_number) %in% unique(clust.new$ring_number))]
+
+
+# Use dplyr
+var.summary.df <- dplyr::summarise(group_by(clust.new,
+                                            species,
+                                            ring_number,
+                                            Sex,
+                                            Method),
+                   n_trips = n(),
+                   clust_1 = sum(cluster == 1),
+                   clust_2 = sum(cluster == 2),
+                   clust_3 = sum(cluster == 3),
+                   clust_4 = sum(cluster == 4),
+                   clust_5 = sum(cluster == 5),
+                   clust_6 = sum(cluster == 6),
+                   clust_7 = sum(cluster == 7)
+                                   
+)
+
+
+write.csv(var.summary.df, file = "deployment_info.csv")
+
+#
+
+
+
