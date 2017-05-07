@@ -608,29 +608,53 @@ t_times <- t_times - 0.5
 melted.df$block_30min_new <- (melted.df$block_30min + 2) %% 48
 sort(unique(melted.df$block_30min_new))
 
+# Re-order the habitat order
+melted.df$habitat <- factor(melted.df$habitat,
+                        # levels(melted.df$habitat)[c(1, 2, 3, 4, 5)])
+                        levels(melted.df$habitat)[c(5, 4, 3, 2, 1)])
+
+melted.df$species <- as.factor(melted.df$species)
+levels(melted.df$species) <- c("L. argentatus",
+                               "L. canus",
+                               "L. fuscus",
+                               "L. marinus")
 
 ggplot(melted.df,
        aes(x=block_30min_new)) + 
   geom_bar(aes(weight=value, fill = habitat), position = 'fill') +
   facet_grid(species~., space = "free_x",
-             drop = TRUE, margins = c("species"))+
-  scale_fill_manual(values=c("#e7298a","#66c2a5" , "#fc8d62", "#8da0cb",
-                             "grey80")) +
+             # drop = TRUE, margins = c("species"))+
+            drop = TRUE)+
+  
+  scale_fill_manual(values=c("grey80", "#8da0cb",
+                             "#fc8d62", "#66c2a5", "#e7298a"
+                             )) +
   scale_x_continuous(breaks=c(0,12,24,36,48)-0.5, limits=c(-0.5, 47.5),
                      labels=c("0","6", "12", "18", "24"))  +
-  geom_vline(xintercept = t_times, lwd = 1, lty = 1, col = "black",
+  geom_vline(xintercept = t_times[c(1,3)], lwd = 1.5, lty = 1,
+             col = "orange",
+             alpha = 0.5)+
+  geom_vline(xintercept = t_times[c(2)], lwd = 1.5, lty = 1,
+             col = "black",
              alpha = 0.5)+
   theme_new_rt +
+  theme(strip.text = element_text(face = "italic")) +
+  theme(legend.position = "top") +
   guides(fill = guide_legend(reverse = TRUE)) +
-  labs(x = "Hour of day (UTC+1)", y = "Proportion (half-hour bins)")
+  labs(x = "Hour of day (UTC+1)", y = "Proportion")
 
 
 
 
-ggsave(file="habitat_time_of_day_species.svg",
-       width = 10, height = 10)
-ggsave(file="habitat_time_of_day_species.png",
-       width = 10, height = 10)
+ggsave(file="habitat_time_of_day_species2.svg",
+       width = 6.3, height = 6)
+ggsave(file="habitat_time_of_day_species2.png",
+       width = 6.3, height = 6)
+ggsave(file="habitat_time_of_day_species2.pdf",
+       width = 6.3, height = 6)
+
+# ggsave(file="habitat_time_of_day_species2.png",
+       # width = 12, height = 10)
 
 
 
