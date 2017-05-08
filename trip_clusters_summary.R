@@ -711,7 +711,7 @@ gg_color_hue <- function(n) {
 
 # Themes etc for ggplot figures
 theme_new <- theme_bw(base_size = 14, base_family = "serif") +
-  theme(legend.position = "none",
+  theme(legend.position = "top",
         legend.justification = c(1, 1),
         legend.key.size =   unit(2, "lines"),
         legend.key = element_rect(colour =NA),
@@ -726,11 +726,23 @@ theme_new <- theme_bw(base_size = 14, base_family = "serif") +
 
 # Get 7 colours
 col.7 <- gg_color_hue(7)
+plot(c(1:7), col = col.7, pch=20)
+
+col.7 <- col.7[c(5,4,3,6,2,1,7 )]
+
+
+# col.7 <- rev(col.7)
 
 # 4 Colours for species:
 # From: mkweb.bcgsc.ca
 spColors <- c("#0072b2",  "#d55e00",
               "#009e73", "#cc79a7")
+
+clust.df.sort$species <- as.factor(clust.df.sort$species)
+levels(clust.df.sort$species) <- c("L. argentatus",
+                                   "L. canus",
+                                   "L. fuscus",
+                                   "L. marinus")
 
 # Set up plot with night and midday indicated
 p <- ggplot(clust.df.sort, aes(x = solar_time_start,
@@ -743,7 +755,8 @@ p <- ggplot(clust.df.sort, aes(x = solar_time_start,
             col = "black", alpha = 0.1) +
   geom_rect(aes(xmin=ss_h+24, xmax=+Inf, ymin=-Inf, ymax=Inf),
             col = "black", alpha = 0.1) +
-  geom_vline(xintercept = c(12,36), alpha = 0.6, size = 2, col = "orange") +
+  geom_vline(xintercept = c(12,36), alpha = 1, size = 1.5, col = "grey20") +
+  geom_vline(xintercept = c(sr_h+24, sr_h, ss_h, ss_h + 24 ), alpha = 1, size = 1.5, col = "orange") +
   scale_colour_manual(name = "Species",values = spColors)
 p
 # ?geom_rect
@@ -759,6 +772,7 @@ dummy.df <- data.frame(clust.mins, clust.max, col.7,
                        solar_time_start = 0,
                        idx = 0,
                        species = NA)
+
 
 p <- p +
   geom_rect(data= dummy.df, aes(xmin=xmin, xmax=xmax,
@@ -790,9 +804,14 @@ p <- p +scale_x_continuous(expand = c(0, 0), limits = c(-3,48),
 p <- p + theme_new
 p <- p +   labs(y = "Cluster", x="Time (local solar)") 
 
-ggsave(plot = p, filename = "cluster_time_of_day_narrow.png", width = 4, height = 6)
-ggsave(plot = p, filename = "cluster_time_of_day_narrow.svg", width = 4, height = 6)
-ggsave(plot = p, filename = "cluster_time_of_day_narrow.pdf", width = 4, height = 6)
+p <- p + theme(strip.text = element_text(face = "italic"))
+
+# Thicker lines for legend
+p <- p +  guides(colour = guide_legend(override.aes = list(size=2)))
+
+ggsave(plot = p, filename = "cluster_time_of_day_narrow2.png", width = 5, height = 6)
+ggsave(plot = p, filename = "cluster_time_of_day_narrow2.svg", width = 5, height = 6)
+ggsave(plot = p, filename = "cluster_time_of_day_narrow2.pdf", width = 5, height = 6)
 
 # ?scale_x_continuous
 # ?ggsave
